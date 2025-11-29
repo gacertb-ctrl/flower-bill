@@ -1,0 +1,50 @@
+<!-- server/views/reports/monthly.ejs -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Monthly Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    .report-header { text-align: center; margin-bottom: 20px; }
+    .report-title { font-size: 24px; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; font-weight: bold; }
+    .text-right { text-align: right; }
+    .total-row { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="report-header">
+    <div class="report-title">Monthly Purchase Report</div>
+    <div class="report-period"><%= month %> <%= year %></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>S.No</th>
+        <th>Supplier Name</th>
+        <th>Total Outstanding / Total Debit</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% reportData.forEach((item, index) => { %>
+        <tr>
+          <td><%= index + 1 %></td>
+          <td><%= item.name %></td>
+          <td class="text-right"><%= item.credit_amount %> / <%= item.debit_amount %></td>
+        </tr>
+      <% }); %>
+      <tr class="total-row">
+        <td colspan="2">Total</td>
+        <td class="text-right">
+          <%= reportData.reduce((sum, item) => sum + parseFloat(item.credit_amount || 0), 0) %> / 
+          <%= reportData.reduce((sum, item) => sum + parseFloat(item.debit_amount || 0), 0) %>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>

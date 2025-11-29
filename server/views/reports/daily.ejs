@@ -1,0 +1,60 @@
+<!-- server/views/reports/daily.ejs -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Daily Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    .report-header { text-align: center; margin-bottom: 20px; }
+    .report-title { font-size: 24px; font-weight: bold; }
+    .report-date { font-size: 18px; margin: 10px 0; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; font-weight: bold; }
+    .customer-row { background-color: #e9ecef; }
+    .text-right { text-align: right; }
+  </style>
+</head>
+<body>
+  <div class="report-header">
+    <div class="report-title">Daily <%= type === 'purchase' ? 'Purchase' : 'Sales' %> Report</div>
+    <div class="report-date"><%= new Date(date).toLocaleDateString() %></div>
+    <% if (tamilDate) { %>
+      <div class="tamil-date"><%= tamilDate.tamil_date %></div>
+    <% } %>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Customer/Supplier</th>
+        <th>Product</th>
+        <th>Quantity</th>
+        <th>Rate</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% customers.forEach(customer => { %>
+        <tr class="customer-row">
+          <td colspan="5"><strong><%= customer.customer_supplier_name %></strong></td>
+        </tr>
+        <% customer.items.forEach(item => { %>
+          <tr>
+            <td></td>
+            <td><%= item.product_name %></td>
+            <td><%= item.quality %></td>
+            <td><%= item.rate %></td>
+            <td class="text-right"><%= item.total %></td>
+          </tr>
+        <% }); %>
+        <tr>
+          <td colspan="4" class="text-right"><strong>Today Amount:</strong></td>
+          <td class="text-right"><strong><%= customer.todayAmount %></strong></td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</body>
+</html>
