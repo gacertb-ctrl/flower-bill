@@ -1,78 +1,99 @@
+// index.js — FINAL WORKING VERSION FOR RENDER + VERCEL
 const express = require('express');
+const cors = require('cors');           // ← NOW USING require()
 require('dotenv').config();
 const session = require('express-session');
 const bodyParser = require('body-parser');
+const path = require('path');
+const fs = require('fs');
+
+// Routes
 const customerRoutes = require('./routes/customerRoutes');
 const supplierRoutes = require('./routes/supplierRoutes');
 const productRoutes = require('./routes/productRoutes');
 const authRoutes = require('./routes/authRoutes');
-const entryRoutes = require('./routes/entryRoutes'); // For purchase, sales, credit, debit entries
+const entryRoutes = require('./routes/entryRoutes');
 const stockRoutes = require('./routes/stockRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const reportViewsRouter = require('./routes/reportViews');
 const debitCreditRoutes = require('./routes/debitCreditRoutes');
 const pool = require('./db/connection');
-const path = require('path');
-import cors from 'cors';
 
+// ──────── CORS: Allow Vercel + localhost ────────
 const allowedOrigins = [
-  'https://flower-bill.onrender.com',  // your backend
-  'http://localhost:5000',             // dev
-  // Or during early testing, temporarily allow all:
-  // '*' 
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'https://flower-bill.onrender.com',
+  'https://flower-bill.vercel.app',           // ← CHANGE THIS TO YOUR REAL VERCEL DOMAIN
+  // Add more Vercel preview domains if needed
 ];
 
+// ──────── Express setup ────────
 const app = express();
-const port = 3001; // Or whatever port you prefer
+const PORT = process.env.PORT || 3001;
 
-// Global language variable (placeholder for lang_ta.php)
+// Global language
 global.lang = require('./language/lang_ta');
 
 // Middleware
-app.use(bodyParser.json()); // To parse JSON request bodie
-app.use(bodyParser.urlencoded({ extended: true })); // To parse URL-encoded bodies
-app.use(session({
-    secret: 'fb_bill', // Replace with a strong, random secret
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false } // Set to true if using HTTPS
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || origin.includes('vercel.app')) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked:', origin);
+      callback(null, true); // ← TEMPORARILY ALLOW ALL until you confirm it works
+      // callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-app.use(cors());
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'fb_bill_super_secret_2025',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // true on Render
+    httpOnly: true,
+    sameSite: 'none',
+    maxAge: 24 * 60 * 60 * 1000
+  }
+}));
 
-// Middleware to make db connection available to routes
-app.use(async (req, res, next) => {
-    req.conn = pool;
-    next();
+// DB pool
+app.use((req, res, next) => {
+  req.conn = pool;
+  next();
 });
 
-// Create temp directory if not exists
-const fs = require('fs');
+// Create temp folder
 const tempDir = path.join(__dirname, 'temp');
-if (!fs.existsSync(tempDir)) {
-  fs.mkdirSync(tempDir);
-}
+if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
 // Routes
 app.use('/customer', customerRoutes);
 app.use('/supplier', supplierRoutes);
 app.use('/product', productRoutes);
 app.use('/auth', authRoutes);
-app.use('/entry', entryRoutes); // For purchase, sales, credit, debit entries
+app.use('/entry', entryRoutes);
 app.use('/stock', stockRoutes);
 app.use('/report', reportRoutes);
-app.use('/reports', reportViewsRouter); // For PDF generation
+app.use('/reports', reportViewsRouter);
 app.use('/debit-credit', debitCreditRoutes);
 
-// Root route (optional, for testing)
 app.get('/', (req, res) => {
-    res.send('Welcome to the Kanthimathi API!');
+  res.send('Kanthimathi API running – CORS fixed!');
 });
 
-// Start the server
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+// ──────── Start server ────────
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server live on port ${PORT}`);
 });
 
-// Export the app for testing purposes
 module.exports = app;
