@@ -4,7 +4,6 @@ const db = require('../db/connection');
 const getTamilMonthDates = async (month, year) => {
     // FIX: Disable ONLY_FULL_GROUP_BY for this session
     await db.query("SET SESSION sql_mode = ''");
-    await db.query("SET SESSION sql_mode = REPLACE(@@sql_mode, 'ONLY_FULL_GROUP_BY', '')");
 
     let sql = "SELECT date, tamil_date, tamil_month_name_en, tamil_month_name_ta FROM tamil_calendar WHERE tamil_month_name_en = ?";
     let params = [month];
@@ -24,7 +23,6 @@ exports.getTamilMonths = async (req, res) => {
     try {
         // FIX: Disable ONLY_FULL_GROUP_BY for this session
         await db.query("SET SESSION sql_mode = ''");
-        await db.query("SET SESSION sql_mode = REPLACE(@@sql_mode, 'ONLY_FULL_GROUP_BY', '')");
 
         const [rows] = await db.query(
             "SELECT * FROM tamil_calendar GROUP BY tamil_month_name_en"
@@ -41,7 +39,6 @@ exports.getReportSummary = async (req, res) => {
     try {
         // FIX: Disable ONLY_FULL_GROUP_BY for this session
         await db.query("SET SESSION sql_mode = ''");
-        await db.query("SET SESSION sql_mode = REPLACE(@@sql_mode, 'ONLY_FULL_GROUP_BY', '')");
 
         const { period_type, report_type, month, year, date } = req.query;
         let sql = "";
@@ -118,7 +115,6 @@ exports.getPrintDetails = async (req, res) => {
     try {
         // FIX: Disable ONLY_FULL_GROUP_BY for this session
         await db.query("SET SESSION sql_mode = ''");
-        await db.query("SET SESSION sql_mode = REPLACE(@@sql_mode, 'ONLY_FULL_GROUP_BY', '')");
 
         const { period_type, report_type, date, month, year, code } = req.query;
         const pageType = report_type === 'purchase' ? 'supplier' : 'customer';
