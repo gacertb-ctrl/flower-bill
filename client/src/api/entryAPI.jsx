@@ -1,34 +1,8 @@
-import axios from 'axios';
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
-
-const getAuthToken = () => {
-    return localStorage.getItem('authToken');
-};
-
-const axiosInstance = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
-
-axiosInstance.interceptors.request.use(
-    (config) => {
-        const token = getAuthToken();
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
+import apiClient from './apiClient';
 
 export const createPurchaseEntry = async (entryData) => {
   try {
-    const response = await axiosInstance.post('/entry/purchase_entry', entryData);
+    const response = await apiClient.post('/entry/purchase_entry', entryData);
     return response.data;
   } catch (error) {
     console.error('Error creating purchase entry:', error);
@@ -38,7 +12,7 @@ export const createPurchaseEntry = async (entryData) => {
 
 export const createSalesEntry = async (entryData) => {
   try {
-    const response = await axiosInstance.post('/entry/sales_entry', entryData);
+    const response = await apiClient.post('/entry/sales_entry', entryData);
     return response.data;
   } catch (error) {
     console.error('Error creating sales entry:', error);
@@ -48,7 +22,7 @@ export const createSalesEntry = async (entryData) => {
 
 export const createCreditEntry = async (entryData) => {
   try {
-    const response = await axiosInstance.post('/entry/credit_entry', entryData);
+    const response = await apiClient.post('/entry/credit_entry', entryData);
     return response.data;
   } catch (error) {
     console.error('Error creating credit entry:', error);
@@ -58,7 +32,7 @@ export const createCreditEntry = async (entryData) => {
 
 export const createDebitEntry = async (entryData) => {
   try {
-    const response = await axiosInstance.post('/entry/debit_entry', entryData);
+    const response = await apiClient.post('/entry/debit_entry', entryData);
     return response.data;
   } catch (error) {
     console.error('Error creating debit entry:', error);
@@ -68,7 +42,7 @@ export const createDebitEntry = async (entryData) => {
 
 export const deleteSalesEntry = async (entryData) => {
   try {
-    const response = await axiosInstance.post('/entry/delete_sales', entryData);
+    const response = await apiClient.post('/entry/delete_sales', entryData);
     return response.data;
   } catch (error) {
     console.error('Error deleting sales entry:', error);
@@ -78,7 +52,7 @@ export const deleteSalesEntry = async (entryData) => {
 
 export const deletePurchaseEntry = async (entryData) => {
   try {
-    const response = await axiosInstance.post('/entry/delete_purchase', entryData);
+    const response = await apiClient.post('/entry/delete_purchase', entryData);
     return response.data;
   } catch (error) {
     console.error('Error deleting purchase entry:', error);
@@ -88,7 +62,7 @@ export const deletePurchaseEntry = async (entryData) => {
 
 export const deleteCreditEntry = async (entryData) => {
   try {
-    const response = await axiosInstance.post('/entry/delete_credit', entryData);
+    const response = await apiClient.post('/entry/delete_credit', entryData);
     return response.data;
   } catch (error) {
     console.error('Error deleting credit entry:', error);
@@ -98,7 +72,7 @@ export const deleteCreditEntry = async (entryData) => {
 
 export const deleteDebitEntry = async (entryData) => {
   try {
-    const response = await axiosInstance.post('/entry/delete_debit', entryData);
+    const response = await apiClient.post('/entry/delete_debit', entryData);
     return response.data;
   } catch (error) {
     console.error('Error deleting debit entry:', error);
@@ -108,7 +82,7 @@ export const deleteDebitEntry = async (entryData) => {
 
 export const getAllPurchaseEntries = async (date) => {
   try {
-    const response = await axiosInstance.get(`/entry/purchase_entry?date=${date}`);
+    const response = await apiClient.get('/entry/purchase_entry', { params: { date } });
     return response.data;
   } catch (error) {
     console.error('Error getting all purchase entries:', error);
@@ -118,7 +92,7 @@ export const getAllPurchaseEntries = async (date) => {
 
 export const getAllSalesEntries = async (date) => {
   try {
-    const response = await axiosInstance.get(`/entry/sales_entry?date=${date}`);
+    const response = await apiClient.get('/entry/sales_entry', { params: { date } });
     return response.data;
   } catch (error) {
     console.error('Error getting all sales entries:', error);
@@ -128,7 +102,7 @@ export const getAllSalesEntries = async (date) => {
 
 export const getAllCreditEntries = async (date) => {
   try {
-    const response = await axiosInstance.get(`/entry/credit_entry?date=${date}`);
+    const response = await apiClient.get('/entry/credit_entry', { params: { date } });
     return response.data;
   } catch (error) {
     console.error('Error getting all credit entries:', error);
@@ -138,7 +112,7 @@ export const getAllCreditEntries = async (date) => {
 
 export const getAllDebitEntries = async (date) => {
   try {
-    const response = await axiosInstance.get(`/entry/debit_entry?date=${date}`);
+    const response = await apiClient.get('/entry/debit_entry', { params: { date } });
     return response.data;
   } catch (error) {
     console.error('Error getting all debit entries:', error);
