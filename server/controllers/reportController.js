@@ -18,7 +18,11 @@ const getTamilMonthDates = async (month, year) => {
 
 exports.getTamilMonths = async (req, res) => {
     try {
-        const [rows] = await db.query("SELECT * FROM tamil_calendar GROUP BY tamil_month_name_en");
+        await db.query("SET SESSION sql_mode = REPLACE(@@sql_mode, 'ONLY_FULL_GROUP_BY', '')");
+
+        const [rows] = await db.query(
+            "SELECT * FROM tamil_calendar GROUP BY tamil_month_name_en"
+        );
         res.json(rows);
     } catch (error) {
         console.error(error);
@@ -26,8 +30,11 @@ exports.getTamilMonths = async (req, res) => {
     }
 };
 
+
 exports.getReportSummary = async (req, res) => {
     try {
+        await db.query("SET SESSION sql_mode = REPLACE(@@sql_mode, 'ONLY_FULL_GROUP_BY', '')");
+        
         const { period_type, report_type, month, year, date } = req.query;
         let sql = "";
         let params = [];
@@ -101,6 +108,8 @@ exports.getReportSummary = async (req, res) => {
 
 exports.getPrintDetails = async (req, res) => {
     try {
+        await db.query("SET SESSION sql_mode = REPLACE(@@sql_mode, 'ONLY_FULL_GROUP_BY', '')");
+        
         const { period_type, report_type, date, month, year, code } = req.query;
         const pageType = report_type === 'purchase' ? 'supplier' : 'customer';
 
