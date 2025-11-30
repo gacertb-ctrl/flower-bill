@@ -18,7 +18,7 @@ const getTamilMonthDates = async (month, year) => {
 
 exports.getTamilMonths = async (req, res) => {
     try {
-        const [rows] = await db.query(""SELECT DISTINCT tamil_month_name_en, tamil_month_name_ta FROM tamil_calendar");
+        const [rows] = await db.query("SELECT DISTINCT tamil_month_name_en, tamil_month_name_ta FROM tamil_calendar");
         res.json(rows);
     } catch (error) {
         console.error(error);
