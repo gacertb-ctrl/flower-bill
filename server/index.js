@@ -2,111 +2,77 @@ const express = require('express');
 require('dotenv').config();
 const session = require('express-session');
 const bodyParser = require('body-parser');
-const path = require('path');
-const fs = require('fs');
-
-// ──────── IMPORT ROUTES ────────
 const customerRoutes = require('./routes/customerRoutes');
 const supplierRoutes = require('./routes/supplierRoutes');
 const productRoutes = require('./routes/productRoutes');
 const authRoutes = require('./routes/authRoutes');
-const entryRoutes = require('./routes/entryRoutes');
+const entryRoutes = require('./routes/entryRoutes'); // For purchase, sales, credit, debit entries
 const stockRoutes = require('./routes/stockRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const reportViewsRouter = require('./routes/reportViews');
 const debitCreditRoutes = require('./routes/debitCreditRoutes');
 const pool = require('./db/connection');
+const path = require('path');
+import cors from 'cors';
 
-// ──────── CORS SETUP (FIXED!) ────────
-const cors = require('cors'); // ← Make sure you have "cors" in package.json
-
-// Add ALL your real frontend domains here
 const allowedOrigins = [
-  'http://localhost:3000',           // Local dev
-  'http://localhost:5000',
-  'https://flower-bill.onrender.com', // Your backend (optional)
-  'https://your-app.vercel.app',      // ← REPLACE with your actual Vercel domain
-  // Vercel preview URLs (optional – you can add them later)
-  // 'https://your-app-git-main-yourname.vercel.app',
-  // Allow all Vercel preview domains temporarily if you want:
-  // (origin) => origin?.endsWith('.vercel.app')
+  'https://flower-bill.onrender.com',  // your backend
+  'http://localhost:5000',             // dev
+  // Or during early testing, temporarily allow all:
+  // '*' 
 ];
 
-// ──────── EXPRESS APP ────────
 const app = express();
-const PORT = process.env.PORT || 3001; // Render requires process.env.PORT
+const port = 3001; // Or whatever port you prefer
 
-// Global language
+// Global language variable (placeholder for lang_ta.php)
 global.lang = require('./language/lang_ta');
 
-// ──────── MIDDLEWARE ────────
-app.use(bodyParser.json({ limit: '10mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
-
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || 'fb_bill_very_strong_secret_2025',
+// Middleware
+app.use(bodyParser.json()); // To parse JSON request bodie
+app.use(bodyParser.urlencoded({ extended: true })); // To parse URL-encoded bodies
+app.use(session({
+    secret: 'fb_bill', // Replace with a strong, random secret
     resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === 'production', // true on Render/Vercel (HTTPS)
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    },
-  })
-);
+    saveUninitialized: true,
+    cookie: { secure: false } // Set to true if using HTTPS
+}));
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (Postman, mobile apps, etc.)
-      if (!origin) return callback(null, true);
+app.use(cors());
 
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        // Remove this line in production if you want to see the error in browser only
-        console.log('CORS blocked origin:', origin);
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    credentials: true,        // Important: allows cookies & Authorization headers
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
-
-// Make DB pool available to all routes
-app.use((req, res, next) => {
-  req.conn = pool;
-  next();
+// Middleware to make db connection available to routes
+app.use(async (req, res, next) => {
+    req.conn = pool;
+    next();
 });
 
-// Create temp directory
+// Create temp directory if not exists
+const fs = require('fs');
 const tempDir = path.join(__dirname, 'temp');
 if (!fs.existsSync(tempDir)) {
-  fs.mkdirSync(tempDir, { recursive: true });
+  fs.mkdirSync(tempDir);
 }
 
-// ──────── ROUTES ────────
+// Routes
 app.use('/customer', customerRoutes);
 app.use('/supplier', supplierRoutes);
 app.use('/product', productRoutes);
 app.use('/auth', authRoutes);
-app.use('/entry', entryRoutes);
+app.use('/entry', entryRoutes); // For purchase, sales, credit, debit entries
 app.use('/stock', stockRoutes);
 app.use('/report', reportRoutes);
-app.use('/reports', reportViewsRouter);
+app.use('/reports', reportViewsRouter); // For PDF generation
 app.use('/debit-credit', debitCreditRoutes);
 
-// Health check
+// Root route (optional, for testing)
 app.get('/', (req, res) => {
-  res.send('Kanthimathi API is running! CORS enabled.');
+    res.send('Welcome to the Kanthimathi API!');
 });
 
-// ──────── START SERVER ────────
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Start the server
+app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
 });
 
+// Export the app for testing purposes
 module.exports = app;
