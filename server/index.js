@@ -13,6 +13,14 @@ const reportViewsRouter = require('./routes/reportViews');
 const debitCreditRoutes = require('./routes/debitCreditRoutes');
 const pool = require('./db/connection');
 const path = require('path');
+import cors from 'cors';
+
+const allowedOrigins = [
+  'https://flower-bill.onrender.com',  // your backend
+  'http://localhost:5000',             // dev
+  // Or during early testing, temporarily allow all:
+  // '*' 
+];
 
 const app = express();
 const port = 3001; // Or whatever port you prefer
@@ -28,6 +36,17 @@ app.use(session({
     resave: false,
     saveUninitialized: true,
     cookie: { secure: false } // Set to true if using HTTPS
+}));
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // if you use cookies/auth
 }));
 
 // Middleware to make db connection available to routes
