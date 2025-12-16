@@ -64,7 +64,7 @@ const EntryPage = () => {
     }
   }
   return (
-    <div className="container mt-5 pt-4">
+    <div className="container-fluid mt-5 pt-4">
       <div className="row">
         <div className="col-12">
           <div className="row mb-3">

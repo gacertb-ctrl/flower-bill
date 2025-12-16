@@ -78,7 +78,7 @@ const SupplierPage = () => {
   };
 
   return (
-    <div className="container">
+    <div className="container-fluid mt-5 pt-4">
       <div className="row mb-3">
         <div className="col-md-2 offset-md-10 text-center">
           <button

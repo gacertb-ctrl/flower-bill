@@ -28,7 +28,7 @@ const StocksPage = () => {
   }, [selectedDate]);
 
   return (
-    <div className="container">
+    <div className="container-fluid mt-5 pt-4">
       <div className="row">
         <div className="col-12">
           <div className="my-3"> {/* Added margin for spacing */}

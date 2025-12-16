@@ -61,7 +61,7 @@ const ReportPage = () => {
     };
 
     return (
-        <div className="container mt-5 pt-4">
+        <div className="container-fluid mt-5 pt-4">
             <div className="col-12">
                 <div className="row mb-5">
                     <div className="col-4 col-sm-4 col-md-4 col-lg-2 col-xl-2">

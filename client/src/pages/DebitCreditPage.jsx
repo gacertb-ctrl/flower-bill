@@ -42,7 +42,7 @@ const DebitCreditPage = () => {
     };
 
     return (
-        <div className="container mt-5 pt-4">
+        <div className="container-fluid mt-5 pt-4">
             <div className="row mb-3">
                 <div className="col-md-3">
                     <label className="form-label fw-bold">{t('date')}</label>
