@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import DataTableBase from '../DataTableBase';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPen, faTrash, faClockRotateLeft } from '@fortawesome/free-solid-svg-icons';
+import { updateSalesEntry } from '../../api/entryAPI';
 
-const SalesTable = ({ data, handleDelete }) => {
+const SalesTable = ({ data, handleDelete, handleEdit }) => {
   const { t } = useTranslation();
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [selectedProduct, setSelectedProduct] = useState('');
@@ -38,9 +39,16 @@ const SalesTable = ({ data, handleDelete }) => {
     {
       name: t('action'),
       cell: (row) => (
-        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.sales_id)}>
-          <FontAwesomeIcon icon={faTrash} />
-        </button>
+        <div className="d-flex gap-2">
+          {/* Edit Button */}
+          <button className="btn btn-primary btn-sm" onClick={() => handleEdit(row, 'sales')}>
+            <FontAwesomeIcon icon={faPen} />
+          </button>
+          {/* Delete Button */}
+          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.sales_id)}>
+            <FontAwesomeIcon icon={faTrash} />
+          </button>
+        </div>
       ),
       button: true,
     },

@@ -8,5 +8,7 @@ router.post('/debit', controller.createDebitEntry);
 router.post('/credit', controller.createCreditEntry);
 router.delete('/debit/:id', controller.deleteDebitEntry);
 router.delete('/credit/:id', controller.deleteCreditEntry);
+router.put('/debit', controller.updateDebitEntry);
+router.put('/credit', controller.updateCreditEntry);
 
 module.exports = router;

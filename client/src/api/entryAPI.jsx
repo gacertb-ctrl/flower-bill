@@ -39,6 +39,28 @@ export const createDebitEntry = async (entryData) => {
     throw error;
   }
 };
+// --- NEW UPDATE FUNCTIONS ---
+export const updatePurchaseEntry = async (entryData) => {
+  try {
+    // entryData should include: { id, quantity, price, product_code }
+    const response = await apiClient.put('/entry/update_purchase', entryData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating purchase entry:', error);
+    throw error;
+  }
+};
+
+export const updateSalesEntry = async (entryData) => {
+  try {
+    // entryData should include: { id, quantity, price, product_code }
+    const response = await apiClient.put('/entry/update_sales', entryData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating sales entry:', error);
+    throw error;
+  }
+};
 
 export const deleteSalesEntry = async (entryData) => {
   try {
