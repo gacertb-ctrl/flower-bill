@@ -2,14 +2,14 @@ import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import DataTableBase from '../DataTableBase';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faPen } from '@fortawesome/free-solid-svg-icons'; // Import Pen icon
 
-const PurchaseTable = ({ data, handleDelete }) => {
+const PurchaseTable = ({ data, handleDelete, handleEdit }) => {
   const { t } = useTranslation();
   const [selectedSupplier, setSelectedSupplier] = useState('');
   const [selectedProduct, setSelectedProduct] = useState('');
 
-  // 1. Extract Unique Lists for Dropdowns
+  // 1. Extract Unique Lists
   const supplierOptions = useMemo(() => {
     return [...new Set(data.map(item => item.customer_supplier_name))].sort();
   }, [data]);
@@ -18,7 +18,7 @@ const PurchaseTable = ({ data, handleDelete }) => {
     return [...new Set(data.map(item => item.product_name))].sort();
   }, [data]);
 
-  // 2. Filter Data based on selections
+  // 2. Filter Data
   const filteredData = useMemo(() => {
     return data.filter(item => {
       const matchSupplier = selectedSupplier ? item.customer_supplier_name === selectedSupplier : true;
@@ -38,53 +38,43 @@ const PurchaseTable = ({ data, handleDelete }) => {
     {
       name: t('action'),
       cell: (row) => (
-        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.purchase_id)}>
-          <FontAwesomeIcon icon={faTrash} />
-        </button>
+        <div className="d-flex gap-2">
+          {/* Edit Button */}
+          <button className="btn btn-primary btn-sm" onClick={() => handleEdit(row, 'purchase')}>
+            <FontAwesomeIcon icon={faPen} />
+          </button>
+          {/* Delete Button */}
+          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.purchase_id)}>
+            <FontAwesomeIcon icon={faTrash} />
+          </button>
+        </div>
       ),
       button: true,
+      width: '120px' // Increased width for 2 buttons
     },
   ];
 
   return (
     <>
-      {/* Filters Section */}
       <div className="row mb-3">
         <div className="col-md-4">
-          <select
-            className="form-select"
-            value={selectedSupplier}
-            onChange={(e) => setSelectedSupplier(e.target.value)}
-          >
-            <option value="">{t('select.supplier') || "All Suppliers"}</option>
-            {supplierOptions.map((name, i) => (
-              <option key={i} value={name}>{name}</option>
-            ))}
+          <select className="form-select" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)}>
+            <option value="">{t('select.supplier')}</option>
+            {supplierOptions.map((name, i) => <option key={i} value={name}>{name}</option>)}
           </select>
         </div>
         <div className="col-md-4">
-          <select
-            className="form-select"
-            value={selectedProduct}
-            onChange={(e) => setSelectedProduct(e.target.value)}
-          >
-            <option value="">{t('select.product') || "All Products"}</option>
-            {productOptions.map((name, i) => (
-              <option key={i} value={name}>{name}</option>
-            ))}
+          <select className="form-select" value={selectedProduct} onChange={(e) => setSelectedProduct(e.target.value)}>
+            <option value="">{t('select.product')}</option>
+            {productOptions.map((name, i) => <option key={i} value={name}>{name}</option>)}
           </select>
         </div>
         <div className="col-md-4 d-flex align-items-end">
-          <button
-            className="btn btn-secondary w-100"
-            onClick={() => { setSelectedSupplier(''); setSelectedProduct(''); }}
-          >
-            {t('clear') || "Clear Filters"}
+          <button className="btn btn-secondary w-100" onClick={() => { setSelectedSupplier(''); setSelectedProduct(''); }}>
+            {t('clear')}
           </button>
         </div>
       </div>
-
-      {/* Table Section */}
       <DataTableBase columns={columns} data={filteredData} t={t} />
     </>
   );

@@ -13,7 +13,7 @@ router.post('/delete_credit', tokenProtect, entryController.deleteCredit);
 router.post('/delete_debit', tokenProtect, entryController.deleteDebit);
 router.get('/purchase_entry', tokenProtect, entryController.getAllPurchaseEntries);
 router.get('/sales_entry', tokenProtect, entryController.getAllSalesEntries);
-router.get('/credit_entr', tokenProtect, entryController.getAllCreditEntries);
-router.get('/debit_entry', tokenProtect, entryController.getAllDebitEntries);
+router.put('/update_purchase', tokenProtect, entryController.updatePurchaseEntry);
+router.put('/update_sales', tokenProtect, entryController.updateSalesEntry);
 
 module.exports = router;

@@ -55,11 +55,7 @@ exports.salesEntry = async (req, res) => {
         const salesSql = "INSERT INTO sales(product_code, customer_supplier_code, sales_quality, sales_rate, sales_total, sales_date, sales_unit, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         const salesValues = [sale_details.product_code, sale_details.customer_supplier_code, sale_details.quality, sale_details.price, pro_price_total_rounded, sale_details.date, sale_details.unit, req.user.id];
         await req.conn.execute(salesSql, salesValues);
-        try {
-            await req.conn1.execute(salesSql.replace('INSERT INTO ', 'INSERT INTO kanthimathi_'), salesValues);
-        } catch (th) {
-            console.error(th);
-        }
+        
 
         const [debitChkRows] = await req.conn.execute("SELECT debit_id, debit_amount FROM debit WHERE customer_supplier_code = ? AND debit_date = ?", [sale_details.customer_supplier_code, sale_details.date]);
 
@@ -67,19 +63,11 @@ exports.salesEntry = async (req, res) => {
             const total = debitChkRows[0].debit_amount + pro_price_total_rounded;
             const debitUpdateSql = "UPDATE debit SET debit_amount = ? WHERE debit_id = ?";
             await req.conn.execute(debitUpdateSql, [total, debitChkRows[0].debit_id]);
-            try {
-                await req.conn1.execute(debitUpdateSql.replace('UPDATE ', 'UPDATE kanthimathi_'), [total, debitChkRows[0].debit_id]);
-            } catch (th) {
-                console.error(th);
-            }
+            
         } else {
             const debitInsertSql = "INSERT INTO debit(customer_supplier_code, debit_amount, debit_date) VALUES (?, ?, ?)";
             await req.conn.execute(debitInsertSql, [sale_details.customer_supplier_code, pro_price_total_rounded, sale_details.date]);
-            try {
-                await req.conn1.execute(debitInsertSql.replace('INSERT INTO ', 'INSERT INTO kanthimathi_'), [sale_details.customer_supplier_code, pro_price_total_rounded, sale_details.date]);
-            } catch (th) {
-                console.error(th);
-            }
+            
         }
 
         res.status(200).send('Sales entry successful.');
@@ -100,19 +88,11 @@ exports.creditEntry = async (req, res) => {
             const total = creditChkRows[0].credit_amount + credit_details.credit_amount;
             const creditUpdateSql = "UPDATE credit SET credit_amount = ? WHERE credit_id = ?";
             await req.conn.execute(creditUpdateSql, [total, creditChkRows[0].credit_id]);
-            try {
-                await req.conn1.execute(creditUpdateSql.replace('UPDATE ', 'UPDATE kanthimathi_'), [total, creditChkRows[0].credit_id]);
-            } catch (th) {
-                console.error(th);
-            }
+            
         } else {
             const creditInsertSql = "INSERT INTO credit(customer_supplier_code, credit_amount, credit_date) VALUES (?, ?, ?)";
             await req.conn.execute(creditInsertSql, [credit_details.credit_cus_code[0], credit_details.credit_amount, credit_details.date]);
-            try {
-                await req.conn1.execute(creditInsertSql.replace('INSERT INTO ', 'INSERT INTO kanthimathi_'), [credit_details.credit_cus_code[0], credit_details.credit_amount, credit_details.date]);
-            } catch (th) {
-                console.error(th);
-            }
+            
         }
         res.status(200).send('Credit entry successful.');
     } catch (error) {
@@ -267,22 +247,69 @@ exports.getAllSalesEntries = async (req, res) => {
     }
 };
 
-exports.getAllCreditEntries = async (req, res) => {
+// Update Purchase Entry
+exports.updatePurchaseEntry = async (req, res) => {
+    const { id, quantity, price } = req.body;
+
     try {
-        const [rows] = await req.conn.execute("SELECT * FROM `credit` WHERE credit_date = ?", [req.query.date]);
-        res.json(rows);
+        // 1. Get the old entry to calculate stock difference
+        const [oldEntry] = await req.conn.execute("SELECT purchase_quality, product_code FROM purchase WHERE purchase_id = ?", [id]);
+        if (oldEntry.length === 0) return res.status(404).json({ error: "Entry not found" });
+
+        const oldQuantity = oldEntry[0].purchase_quality;
+        const newTotal = quantity * price;
+        const quantityDiff = quantity - oldQuantity;
+
+        // 2. Update the Purchase Entry
+        await req.conn.execute(
+            "UPDATE purchase SET purchase_quality = ?, purchase_rate = ?, purchase_total = ? WHERE purchase_id = ?",
+            [quantity, price, newTotal, id]
+        );
+
+        // 3. Update Product Stock (Purchase increases stock, so add the difference)
+        // If quantity increased (e.g. 10 to 12), diff is +2. Add 2 to stock.
+        // If quantity decreased (e.g. 10 to 8), diff is -2. Subtract 2 from stock.
+        await req.conn.execute(
+            "UPDATE product SET product_quality = product_quality + ? WHERE product_code = ?",
+            [quantityDiff, oldEntry[0].product_code]
+        );
+
+        res.status(200).json({ message: "Purchase entry updated successfully" });
     } catch (error) {
-        console.error('Error fetching credit entries:', error);
-        res.status(500).send('Error fetching credit entries');
+        console.error(error);
+        res.status(500).json({ error: "Failed to update purchase entry" });
     }
 };
 
-exports.getAllDebitEntries = async (req, res) => {
+// Update Sales Entry
+exports.updateSalesEntry = async (req, res) => {
+    const { id, quantity, price, product_code } = req.body;
+
     try {
-        const [rows] = await req.conn.execute("SELECT * FROM `debit` WHERE debit_date = ?", [req.query.date]);
-        res.json(rows);
+        // 1. Get the old entry
+        const [oldEntry] = await req.conn.execute("SELECT sales_quality, product_code FROM sales WHERE sales_id = ?", [id]);
+        if (oldEntry.length === 0) return res.status(404).json({ error: "Entry not found" });
+
+        const oldQuantity = oldEntry[0].sales_quality;
+        const newTotal = quantity * price;
+        const quantityDiff = quantity - oldQuantity;
+
+        // 2. Update the Sales Entry
+        await req.conn.execute(
+            "UPDATE sales SET sales_quality = ?, sales_rate = ?, sales_total = ? WHERE sales_id = ?",
+            [quantity, price, newTotal, id]
+        );
+
+        // 3. Update Product Stock (Sales decreases stock, so subtract the difference)
+        // If quantity increased (e.g. 5 to 7), diff is +2. We sold MORE, so stock must go DOWN (-2).
+        await req.conn.execute(
+            "UPDATE product SET product_quality = product_quality - ? WHERE product_code = ?",
+            [quantityDiff, oldEntry[0].product_code]
+        );
+
+        res.status(200).json({ message: "Sales entry updated successfully" });
     } catch (error) {
-        console.error('Error fetching debit entries:', error);
-        res.status(500).send('Error fetching debit entries');
+        console.error(error);
+        res.status(500).json({ error: "Failed to update sales entry" });
     }
 };
