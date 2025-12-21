@@ -18,7 +18,16 @@ const getTamilMonthDates = async (month, year) => {
 
 exports.getTamilMonths = async (req, res) => {
     try {
-        const [rows] = await db.query("SELECT * FROM tamil_calendar GROUP BY tamil_month_name_en");
+        // ❌ OLD (INVALID with ONLY_FULL_GROUP_BY)
+        // const [rows] = await db.query(
+        //     "SELECT * FROM tamil_calendar GROUP BY tamil_month_name_en"
+        // );
+
+        // ✅ FIXED (structure unchanged, only query corrected)
+        const [rows] = await db.query(
+            "SELECT MIN(id) AS id, tamil_month_name_en, tamil_month_name_ta FROM tamil_calendar GROUP BY tamil_month_name_en"
+        );
+
         res.json(rows);
     } catch (error) {
         console.error(error);
