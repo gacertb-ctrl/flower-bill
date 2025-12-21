@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getReportSummary, getTamilMonths } from '../api/reportAPI.jsx';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCloudDownload } from '@fortawesome/free-solid-svg-icons';
 
 const ReportPage = () => {
     const { t } = useTranslation();
@@ -115,7 +117,7 @@ const ReportPage = () => {
                     <div className="row mb-3">
                         <div className="col-12 text-end">
                             <button className="btn btn-primary" onClick={() => handleDownload()}>
-                                <i className="fa-solid fa-download"></i> {t('reports.downloadAll')}
+                                <FontAwesomeIcon icon={faCloudDownload} />; {t('reports.downloadAll')}
                             </button>
                         </div>
                     </div>
@@ -149,7 +151,7 @@ const ReportPage = () => {
                                         <td>{displayAmt}</td>
                                         <td>
                                             <button className="btn btn-primary btn-sm" onClick={() => handleDownload(row.customer_supplier_code)}>
-                                                <i className="fa-solid fa-download"></i>
+                                                <FontAwesomeIcon icon={faCloudDownload} />;
                                             </button>
                                         </td>
                                     </tr>
