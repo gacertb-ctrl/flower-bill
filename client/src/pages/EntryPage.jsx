@@ -37,6 +37,41 @@ const EntryPage = () => {
     loadData();
   }, [loadData]);
 
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Shortcut for Purchase (e.g., Alt + P)
+      if (event.altKey && event.key.toLowerCase() === 'p') {
+        event.preventDefault();
+        setShowPurchaseModal(true);
+      }
+
+      // Shortcut for Sales (e.g., Alt + S)
+      if (event.altKey && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        setShowSalesModal(true);
+      }
+
+      // Option 2: Function Keys (F9 for Purchase, F8 for Sales like Tally)
+      /* if (event.key === 'F9') {
+         event.preventDefault();
+         setShowPurchaseModal(true);
+      }
+      if (event.key === 'F8') {
+         event.preventDefault();
+         setShowSalesModal(true);
+      } 
+      */
+    };
+
+    // Add event listener
+    window.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup event listener
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []); // Empty dependency array means this runs once on mount
+
   // --- Purchase Handlers ---
   const handlePurchaseEdit = (row, type) => {
     // Map Table Row to Modal Form Format
@@ -112,7 +147,7 @@ const EntryPage = () => {
               <h3>{t('purchase')}</h3>
               <div className="mb-3">
                 <button className="btn btn-primary me-2" onClick={() => { setEditItem(null); setShowPurchaseModal(true); }}>
-                  {t('add purchase')}
+                  {t('add purchase')} (Alt + P)
                 </button>
               </div>
               <PurchaseTable
@@ -127,7 +162,7 @@ const EntryPage = () => {
               <h3>{t('sales')}</h3>
               <div className="mb-3">
                 <button className="btn btn-primary me-2" onClick={() => { setEditItem(null); setShowSalesModal(true); }}>
-                  {t('add sales')}
+                  {t('add sales')} (Alt + S)
                 </button>
               </div>
               <SalesTable

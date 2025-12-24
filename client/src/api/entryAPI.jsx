@@ -141,3 +141,24 @@ export const getAllDebitEntries = async (date) => {
     throw error;
   }
 };
+
+export const createPurchaseEntryBulk = async (entryData) => {
+  try {
+    const response = await apiClient.post('/entry/purchase_entry_bulk', entryData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating bulk purchase entry:', error);
+    throw error;
+  }
+};
+
+export const createSalesEntryBulk = async (entryData) => {
+  try {
+    const response = await apiClient.post('/entry/sales_entry_bulk', entryData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating bulk sales entry:', error);
+    throw error;
+  }
+};
+

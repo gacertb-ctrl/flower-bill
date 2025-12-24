@@ -15,5 +15,7 @@ router.get('/purchase_entry', tokenProtect, entryController.getAllPurchaseEntrie
 router.get('/sales_entry', tokenProtect, entryController.getAllSalesEntries);
 router.put('/update_purchase', tokenProtect, entryController.updatePurchaseEntry);
 router.put('/update_sales', tokenProtect, entryController.updateSalesEntry);
+router.post('/purchase_entry_bulk', tokenProtect, entryController.purchaseEntryBulk); // <--- Add this
+router.post('/sales_entry_bulk', tokenProtect, entryController.salesEntryBulk);       // <--- Add this
 
 module.exports = router;

@@ -151,7 +151,7 @@ const ReportPage = () => {
                                         <td>{displayAmt}</td>
                                         <td>
                                             <button className="btn btn-primary btn-sm" onClick={() => handleDownload(row.customer_supplier_code)}>
-                                                <FontAwesomeIcon icon={faCloudDownload} />;
+                                                <FontAwesomeIcon icon={faCloudDownload} />
                                             </button>
                                         </td>
                                     </tr>

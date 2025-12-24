@@ -1,50 +1,33 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Modal, Button, Form, Row, Col } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Modal, Button, Form, Row, Col, Table } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
 import { fetchSuppliers } from '../../api/supplierAPI';
 import { fetchCustomers } from '../../api/customerAPI';
 import { fetchProducts } from '../../api/productAPI';
-import { createPurchaseEntry, createSalesEntry } from '../../api/entryAPI';
+import { createPurchaseEntryBulk, createSalesEntryBulk } from '../../api/entryAPI'; // Updated Import
 import { SearchableSelect } from './SearchableSelect';
 
 const EntryModal = ({ type, show, onHide, onSubmit, date }) => {
   const { t } = useTranslation();
-  const [formData, setFormData] = useState({
+
+  // 1. Header Data (Customer & Date)
+  const [headerData, setHeaderData] = useState({
     customer_supplier_code: '',
-    product_code: '',
-    quality: '',
-    unit: '',
-    price: '',
-    price_total: '',
     date: date
   });
+
+  // 2. Rows Data (Array of Products)
+  const [rows, setRows] = useState([
+    { product_code: '', quality: '', unit: '', price: '', price_total: 0 }
+  ]);
 
   const [suppliers, setSuppliers] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
-  const [default_unit, setDefault_unit] = useState('');
 
-  // Helper to manage Local Storage Cache
-  const getCachedData = (custCode, prodCode) => {
-    if (!custCode || !prodCode) return null;
-    const key = `entry_cache_${type}_${custCode}_${prodCode}`;
-    try {
-      const cached = localStorage.getItem(key);
-      return cached ? JSON.parse(cached) : null;
-    } catch (e) {
-      return null;
-    }
-  };
-
-  const setCachedData = (custCode, prodCode, data) => {
-    if (!custCode || !prodCode) return;
-    const key = `entry_cache_${type}_${custCode}_${prodCode}`;
-    localStorage.setItem(key, JSON.stringify(data));
-  };
-
-  // Update date in form data when prop changes
+  // Update date when prop changes
   useEffect(() => {
-    setFormData(prev => ({ ...prev, date: date }));
+    setHeaderData(prev => ({ ...prev, date: date }));
   }, [date]);
 
   useEffect(() => {
@@ -53,8 +36,6 @@ const EntryModal = ({ type, show, onHide, onSubmit, date }) => {
         const suppliers_data = await fetchSuppliers();
         const customers_data = await fetchCustomers();
         const products_data = await fetchProducts();
-
-        // Ensure we are working with arrays
         setSuppliers(Array.isArray(suppliers_data) ? suppliers_data : Object.values(suppliers_data || {}));
         setCustomers(Array.isArray(customers_data) ? customers_data : Object.values(customers_data || {}));
         setProducts(Array.isArray(products_data) ? products_data : Object.values(products_data || {}));
@@ -67,105 +48,125 @@ const EntryModal = ({ type, show, onHide, onSubmit, date }) => {
     }
   }, [show]);
 
+  // --- Helper Functions ---
 
-  // Logic to load "Previous Data" from Local Storage OR Fallback to Product Defaults
-  useEffect(() => {
-    const autoFillData = () => {
-      // 1. If we have both Customer and Product, check Local Storage history first
-      if (formData.customer_supplier_code && formData.product_code) {
-        const cached = getCachedData(formData.customer_supplier_code, formData.product_code);
-
-        if (cached) {
-          // Found local history for this combo, use it
-          setFormData(prev => ({
-            ...prev,
-            price: cached.price,
-            unit: cached.unit || prev.unit
-          }));
-          return;
-        }
-      }
-
-      // 2. If no history (or just changed product), load Product Master Defaults
-      if (formData.product_code) {
-        const product_detail = products.find(p => p.code.toString() === formData.product_code.toString());
-        if (product_detail) {
-          const defaultPrice = product_detail.product_price || product_detail.price || '';
-          const defaultUnit = product_detail.product_unit || product_detail.unit || 'kg';
-
-          setFormData(prev => ({
-            ...prev,
-            // Only overwrite if price is empty to avoid overwriting user edits while they type
-            // But since this effect runs on product_code change, it acts as an initializer
-            price: defaultPrice,
-            unit: defaultUnit
-          }));
-          setDefault_unit(defaultUnit);
-        }
-      }
-    };
-
-    autoFillData();
-  }, [formData.customer_supplier_code, formData.product_code, products, type]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const getCachedData = (custCode, prodCode) => {
+    if (!custCode || !prodCode) return null;
+    try {
+      const cached = localStorage.getItem(`entry_cache_${type}_${custCode}_${prodCode}`);
+      return cached ? JSON.parse(cached) : null;
+    } catch (e) { return null; }
   };
 
-  // Trigger calculation when relevant fields change
-  useEffect(() => {
-    calculateTotal();
-  }, [formData.quality, formData.price, formData.unit, default_unit]);
+  const setCachedData = (custCode, prodCode, data) => {
+    if (!custCode || !prodCode) return;
+    localStorage.setItem(`entry_cache_${type}_${custCode}_${prodCode}`, JSON.stringify(data));
+  };
 
-  const calculateTotal = () => {
-    if (formData.quality && formData.price) {
-      const quality = parseFloat(formData.quality);
-      let price = parseFloat(formData.price);
+  // --- Form Handlers ---
 
-      // Unit conversion logic
-      if (formData.unit !== default_unit) {
-        if (formData.unit === 'kg' && default_unit === 'g') {
-          price = (parseFloat(formData.price) * 1000);
-        } else if (formData.unit === 'g' && default_unit === 'kg') {
-          price = (parseFloat(formData.price) / 1000);
-        }
-      }
+  const handleHeaderChange = (e) => {
+    const { name, value } = e.target;
+    setHeaderData(prev => ({ ...prev, [name]: value }));
+  };
 
-      setFormData(prev => ({
-        ...prev,
-        price_total: (quality * price).toFixed(2)
-      }));
+  // Add a new empty row
+  const addRow = () => {
+    setRows([...rows, { product_code: '', quality: '', unit: '', price: '', price_total: 0 }]);
+  };
+
+  // Remove a row
+  const removeRow = (index) => {
+    if (rows.length > 1) {
+      const newRows = rows.filter((_, i) => i !== index);
+      setRows(newRows);
     }
   };
 
-  const handleSubmit = async () => {
-    const payload = { ...formData, date: date };
-    try {
-      if (type === 'purchase') {
-        await createPurchaseEntry(payload);
-      } else if (type === 'sales') {
-        await createSalesEntry(payload);
+  // Handle changes inside the table rows
+  const handleRowChange = (index, field, value) => {
+    const newRows = [...rows];
+    newRows[index][field] = value;
+
+    // Special logic when Product changes
+    if (field === 'product_code') {
+      const product = products.find(p => p.code.toString() === value.toString());
+      if (product) {
+        // Check cache first
+        const cached = getCachedData(headerData.customer_supplier_code, value);
+        if (cached) {
+          newRows[index].price = cached.price;
+          newRows[index].unit = cached.unit || product.product_unit || 'kg';
+        } else {
+          // Use product defaults
+          newRows[index].price = product.product_price || product.price || '';
+          newRows[index].unit = product.product_unit || product.unit || 'kg';
+        }
+      }
+    }
+
+    // Recalculate Total for this row
+    if (field === 'quality' || field === 'price' || field === 'unit' || field === 'product_code') {
+      const qty = parseFloat(newRows[index].quality) || 0;
+      let price = parseFloat(newRows[index].price) || 0;
+      const unit = newRows[index].unit;
+
+      // Find default unit for conversion logic
+      const product = products.find(p => p.code.toString() === newRows[index].product_code.toString());
+      const default_unit = product ? (product.product_unit || product.unit || 'kg') : 'kg';
+
+      // Conversion Logic (Kg <-> g)
+      if (unit !== default_unit) {
+        if (unit === 'kg' && default_unit === 'g') price = price * 1000;
+        else if (unit === 'g' && default_unit === 'kg') price = price / 1000;
       }
 
-      onSubmit(payload);
+      newRows[index].price_total = (qty * price).toFixed(2);
+    }
 
-      // Save to Local Storage Cache for "Previous Data" feature
-      setCachedData(formData.customer_supplier_code, formData.product_code, {
-        price: formData.price,
-        unit: formData.unit
+    setRows(newRows);
+  };
+
+  // Calculate Grand Total
+  const grandTotal = rows.reduce((acc, row) => acc + (parseFloat(row.price_total) || 0), 0).toFixed(2);
+
+  const handleSubmit = async () => {
+    // Validation
+    if (!headerData.customer_supplier_code) {
+      alert(t('Please select a customer/supplier'));
+      return;
+    }
+    const validRows = rows.filter(r => r.product_code && r.quality && r.price);
+    if (validRows.length === 0) {
+      alert(t('Please add at least one valid product'));
+      return;
+    }
+
+    const payload = {
+      customer_supplier_code: headerData.customer_supplier_code,
+      date: headerData.date,
+      items: validRows
+    };
+
+    try {
+      if (type === 'purchase') {
+        await createPurchaseEntryBulk(payload);
+      } else if (type === 'sales') {
+        await createSalesEntryBulk(payload);
+      }
+
+      // Save Cache
+      validRows.forEach(row => {
+        setCachedData(headerData.customer_supplier_code, row.product_code, {
+          price: row.price,
+          unit: row.unit
+        });
       });
 
-      setFormData(prev => ({
-        ...prev,
-        quality: '',
-        price_total: ''
-      }));
+      onSubmit(payload); // Refresh parent table
 
+      // Reset Form
+      setRows([{ product_code: '', quality: '', unit: '', price: '', price_total: 0 }]);
       onHide();
 
     } catch (e) {
@@ -175,7 +176,6 @@ const EntryModal = ({ type, show, onHide, onSubmit, date }) => {
   };
 
   const listOptions = type === 'purchase' ? suppliers : customers;
-
   const mappedListOptions = listOptions.map(item => ({
     code: item.code || item.customer_supplier_code,
     name: item.name || item.customer_supplier_name
@@ -183,112 +183,107 @@ const EntryModal = ({ type, show, onHide, onSubmit, date }) => {
 
   const mappedProducts = products.map(item => ({
     code: item.code || item.product_code,
-    name: item.name || item.product_name,
-    ...item
+    name: item.name || item.product_name
   }));
 
   return (
-    <Modal show={show} onHide={onHide} size="lg" centered>
+    <Modal show={show} onHide={onHide} size="xl" centered>
       <Modal.Header closeButton>
-        <Modal.Title>{t(`add ${type}`)}</Modal.Title>
+        <Modal.Title>{t(`add ${type}`)} (Multiple)</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <Form>
-          <Row className="mb-3">
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label>
-                  {type === 'purchase' ? t('supplier') : t('customer')}
-                </Form.Label>
-                <SearchableSelect
-                  name="customer_supplier_code"
-                  value={formData.customer_supplier_code}
-                  options={mappedListOptions}
-                  onChange={handleChange}
-                  placeholder={type === 'purchase' ? t('select.supplier') : t('select.customer')}
-                />
-              </Form.Group>
-            </Col>
+        {/* Header Section */}
+        <Row className="mb-3">
+          <Col md={6}>
+            <Form.Group>
+              <Form.Label>{type === 'purchase' ? t('supplier') : t('customer')}</Form.Label>
+              <SearchableSelect
+                name="customer_supplier_code"
+                value={headerData.customer_supplier_code}
+                options={mappedListOptions}
+                onChange={handleHeaderChange}
+                placeholder={type === 'purchase' ? t('select.supplier') : t('select.customer')}
+                autoFocus={true}
+              />
+            </Form.Group>
+          </Col>
+          <Col md={6}>
+            <Form.Label>Date</Form.Label>
+            <Form.Control type="text" value={headerData.date} disabled />
+          </Col>
+        </Row>
 
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label>{t('product')}</Form.Label>
-                <SearchableSelect
-                  name="product_code"
-                  value={formData.product_code}
-                  options={mappedProducts}
-                  onChange={handleChange}
-                  placeholder={t('select.product')}
-                />
-              </Form.Group>
-            </Col>
-          </Row>
+        {/* Dynamic Rows Section */}
+        <Table bordered hover size="sm">
+          <thead>
+            <tr>
+              <th width="35%">{t('product')}</th>
+              <th width="15%">{t('quantity')}</th>
+              <th width="15%">{t('unit')}</th>
+              <th width="15%">{t('price')}</th>
+              <th width="15%">{t('total')}</th>
+              <th width="5%">X</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={index}>
+                <td>
+                  <SearchableSelect
+                    value={row.product_code}
+                    options={mappedProducts}
+                    onChange={(e) => handleRowChange(index, 'product_code', e.target.value)}
+                    placeholder={t('select.product')}
+                  />
+                </td>
+                <td>
+                  <Form.Control
+                    type="number"
+                    value={row.quality}
+                    onChange={(e) => handleRowChange(index, 'quality', e.target.value)}
+                  />
+                </td>
+                <td>
+                  <Form.Select
+                    value={row.unit}
+                    onChange={(e) => handleRowChange(index, 'unit', e.target.value)}
+                  >
+                    <option value="kg">{t('kg')}</option>
+                    <option value="g">{t('g')}</option>
+                    <option value="படி">{t('padi')}</option>
+                    <option value="pie">{t('pieces')}</option>
+                  </Form.Select>
+                </td>
+                <td>
+                  <Form.Control
+                    type="number"
+                    value={row.price}
+                    onChange={(e) => handleRowChange(index, 'price', e.target.value)}
+                  />
+                </td>
+                <td>
+                  <Form.Control type="text" value={row.price_total} readOnly />
+                </td>
+                <td>
+                  <Button variant="danger" size="sm" onClick={() => removeRow(index)} disabled={rows.length === 1}>
+                    <i className="fa fa-trash"></i>
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
 
-          <Row className="mb-3">
-            <Col md={3}>
-              <Form.Group>
-                <Form.Label>{t('quantity')}</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="quality"
-                  value={formData.quality}
-                  onChange={handleChange}
-                  autoComplete="off"
-                />
-              </Form.Group>
-            </Col>
+        <Button variant="secondary" size="sm" onClick={addRow}>+ {t('Add Row')}</Button>
 
-            <Col md={3}>
-              <Form.Group>
-                <Form.Label>{t('unit')}</Form.Label>
-                <Form.Select
-                  name="unit"
-                  value={formData.unit}
-                  onChange={handleChange}
-                >
-                  <option value="">{t('select.unit')}</option>
-                  <option value="kg">{t('kg')}</option>
-                  <option value="g">{t('g')}</option>
-                  <option value="படி">{t('padi')}</option>
-                  <option value="pie">{t('pieces')}</option>
-                </Form.Select>
-              </Form.Group>
-            </Col>
+        <div className="d-flex justify-content-end mt-3">
+          <h4>{t('Grand Total')}: {grandTotal}</h4>
+        </div>
 
-            <Col md={3}>
-              <Form.Group>
-                <Form.Label>{t('price')}</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="price"
-                  value={formData.price}
-                  onChange={handleChange}
-                  autoComplete="off"
-                />
-              </Form.Group>
-            </Col>
-
-            <Col md={3}>
-              <Form.Group>
-                <Form.Label>{t('total')}</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="price_total"
-                  value={formData.price_total}
-                  readOnly
-                />
-              </Form.Group>
-            </Col>
-          </Row>
-        </Form>
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={onHide}>
-          {t('close')}
-        </Button>
-        <Button variant="primary" onClick={handleSubmit}>
-          {t('save')}
-        </Button>
+        <Button variant="secondary" onClick={onHide}>{t('close')}</Button>
+        <Button variant="primary" onClick={handleSubmit}>{t('save')}</Button>
       </Modal.Footer>
     </Modal>
   );
