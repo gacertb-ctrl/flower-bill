@@ -18,6 +18,8 @@ const reportRoutes = require('./routes/reportRoutes');
 const reportViewsRouter = require('./routes/reportViews');
 const debitCreditRoutes = require('./routes/debitCreditRoutes');
 const pool = require('./db/connection');
+const cron = require('node-cron'); // Import cron
+const { backupDatabase } = require('./utils/backupService'); // Import your new service
 
 // ──────── CORS: Allow Vercel + localhost ────────
 const allowedOrigins = [
@@ -89,6 +91,13 @@ app.use('/debit-credit', debitCreditRoutes);
 
 app.get('/', (req, res) => {
   res.send('Kanthimathi API running – CORS fixed!');
+});
+
+// Schedule task to run every day at 11:55 PM
+// Format: Minute Hour Day Month DayOfWeek
+cron.schedule('55 23 * * *', () => {
+    console.log('⏰ Running Daily Backup Job...');
+    backupDatabase();
 });
 
 // ──────── Start server ────────
