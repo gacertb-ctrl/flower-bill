@@ -21,7 +21,6 @@ const orgRoutes = require('./routes/orgRoutes');
 const userRoutes = require('./routes/userRoutes');
 
 const pool = require('./db/connection');
-const path = require('path');
 const cron = require('node-cron'); // Import cron
 const { backupDatabase } = require('./utils/backupService'); // Import your new service
 
