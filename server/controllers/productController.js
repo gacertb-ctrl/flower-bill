@@ -32,9 +32,9 @@ exports.createProduct = async (req, res) => {
 
         await req.conn.execute(
             `INSERT INTO product 
-          (product_code, product_name, product_price, product_quality, product_unit) 
-         VALUES (?, ?, ?, ?, ?)`,
-            [code, name, price, quality || null, unit || null]
+          (product_code, product_name, product_price, product_quality, product_unit, organization_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+            [code, name, price, quality || null, unit || null, req.user.organization_id]
         );
 
         res.status(201).json({ message: 'Product created successfully' });
@@ -86,7 +86,8 @@ exports.getProduct = async (req, res) => {
 
 exports.getAllProducts = async (req, res) => {
     try {
-        const [rows] = await req.conn.execute('SELECT * FROM product');
+        console.log(req.user);
+        const [rows] = await req.conn.execute('SELECT * FROM product WHERE organization_id = ?', [req.user.organization_id]);
         
         res.json(rows.map(row => ({
             code: row.product_code,

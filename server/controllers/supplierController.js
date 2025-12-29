@@ -41,9 +41,9 @@ const getAllSuppliers = async (req, res) => {
           FROM credit 
           GROUP BY customer_supplier_code
         ) cr ON cr.customer_supplier_code = cs.customer_supplier_code 
-        WHERE cs.supplier = 'Y' AND cs.customer_supplier_is_active = 'Y'
+        WHERE cs.supplier = 'Y' AND cs.customer_supplier_is_active = 'Y' AND cs.organization_id = ?
         ORDER BY cs.S_no
-      `);
+      `, [req.user.organization_id]);
       
       res.json(rows.map(row => ({
         S_no: row.S_no,

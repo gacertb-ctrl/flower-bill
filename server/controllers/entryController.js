@@ -2,39 +2,25 @@ exports.purchaseEntry = async (req, res) => {
     const pur_details = req.body;
     try {
         // req.session.entry_date = pur_details.date;
-        console.log(req.user)
         const [productRows] = await req.conn.execute("SELECT product_unit FROM product WHERE product_code = ?", [pur_details.product_code]);
         
         const pro_price_total_rounded = Math.round(pur_details.price_total);
 
-        const purchaseSql = "INSERT INTO purchase(product_code, customer_supplier_code, purchase_quality, purchase_rate, purchase_total, purchase_date, purchase_unit, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        const purchaseValues = [pur_details.product_code, pur_details.customer_supplier_code, pur_details.quality, pur_details.price, pro_price_total_rounded, pur_details.date, pur_details.unit, req.user.id];
+        const purchaseSql = "INSERT INTO purchase(product_code, customer_supplier_code, purchase_quality, purchase_rate, purchase_total, purchase_date, purchase_unit, user_id, organization_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        const purchaseValues = [pur_details.product_code, pur_details.customer_supplier_code, pur_details.quality, pur_details.price, pro_price_total_rounded, pur_details.date, pur_details.unit, req.user.id, req.user.organization_id];
         await req.conn.execute(purchaseSql, purchaseValues);
-        try {
-            await req.conn1.execute(purchaseSql.replace('INSERT INTO ', 'INSERT INTO kanthimathi_'), purchaseValues);
-        } catch (th) {
-            console.error(th);
-        }
-
-        const [creditChkRows] = await req.conn.execute("SELECT credit_id, credit_amount FROM credit WHERE customer_supplier_code = ? AND credit_date = ?", [pur_details.customer_supplier_code, pur_details.date]);
+        
+        const [creditChkRows] = await req.conn.execute("SELECT credit_id, credit_amount FROM credit WHERE customer_supplier_code = ? AND credit_date = ? AND organization_id = ?", [pur_details.customer_supplier_code, pur_details.date, req.user.organization_id]);
 
         if (creditChkRows.length > 0) {
             const total = creditChkRows[0].credit_amount + pro_price_total_rounded;
             const creditUpdateSql = "UPDATE credit SET credit_amount = ? WHERE credit_id = ?";
             await req.conn.execute(creditUpdateSql, [total, creditChkRows[0].credit_id]);
-            try {
-                await req.conn1.execute(creditUpdateSql.replace('UPDATE ', 'UPDATE kanthimathi_'), [total, creditChkRows[0].credit_id]);
-            } catch (th) {
-                console.error(th);
-            }
+            
         } else {
-            const creditInsertSql = "INSERT INTO credit(customer_supplier_code, credit_amount, credit_date) VALUES (?, ?, ?)";
-            await req.conn.execute(creditInsertSql, [pur_details.customer_supplier_code, pro_price_total_rounded, pur_details.date]);
-            try {
-                await req.conn1.execute(creditInsertSql.replace('INSERT INTO ', 'INSERT INTO kanthimathi_'), [pur_details.customer_supplier_code, pro_price_total_rounded, pur_details.date]);
-            } catch (th) {
-                console.error(th);
-            }
+            const creditInsertSql = "INSERT INTO credit(customer_supplier_code, credit_amount, credit_date, organization_id) VALUES (?, ?, ?, ?)";
+            await req.conn.execute(creditInsertSql, [pur_details.customer_supplier_code, pro_price_total_rounded, pur_details.date, req.user.organization_id]);
+            
         }
 
         res.status(200).send('Purchase entry successful.');
@@ -52,12 +38,12 @@ exports.salesEntry = async (req, res) => {
 
         const pro_price_total_rounded = Math.round(sale_details.price_total);
 
-        const salesSql = "INSERT INTO sales(product_code, customer_supplier_code, sales_quality, sales_rate, sales_total, sales_date, sales_unit, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        const salesValues = [sale_details.product_code, sale_details.customer_supplier_code, sale_details.quality, sale_details.price, pro_price_total_rounded, sale_details.date, sale_details.unit, req.user.id];
+        const salesSql = "INSERT INTO sales(product_code, customer_supplier_code, sales_quality, sales_rate, sales_total, sales_date, sales_unit, user_id, organization_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        const salesValues = [sale_details.product_code, sale_details.customer_supplier_code, sale_details.quality, sale_details.price, pro_price_total_rounded, sale_details.date, sale_details.unit, req.user.id, req.user.organization_id];
         await req.conn.execute(salesSql, salesValues);
         
 
-        const [debitChkRows] = await req.conn.execute("SELECT debit_id, debit_amount FROM debit WHERE customer_supplier_code = ? AND debit_date = ?", [sale_details.customer_supplier_code, sale_details.date]);
+        const [debitChkRows] = await req.conn.execute("SELECT debit_id, debit_amount FROM debit WHERE customer_supplier_code = ? AND debit_date = ? AND organization_id = ?", [sale_details.customer_supplier_code, sale_details.date, req.user.organization_id]);
 
         if (debitChkRows.length > 0) {
             const total = debitChkRows[0].debit_amount + pro_price_total_rounded;
@@ -65,8 +51,8 @@ exports.salesEntry = async (req, res) => {
             await req.conn.execute(debitUpdateSql, [total, debitChkRows[0].debit_id]);
             
         } else {
-            const debitInsertSql = "INSERT INTO debit(customer_supplier_code, debit_amount, debit_date) VALUES (?, ?, ?)";
-            await req.conn.execute(debitInsertSql, [sale_details.customer_supplier_code, pro_price_total_rounded, sale_details.date]);
+            const debitInsertSql = "INSERT INTO debit(customer_supplier_code, debit_amount, debit_date, organization_id) VALUES (?, ?, ?, ?)";
+            await req.conn.execute(debitInsertSql, [sale_details.customer_supplier_code, pro_price_total_rounded, sale_details.date, req.user.organization_id]);
             
         }
 
@@ -82,7 +68,7 @@ exports.creditEntry = async (req, res) => {
     try {
         req.session.entry_date = credit_details.date;
 
-        const [creditChkRows] = await req.conn.execute("SELECT credit_id, credit_amount FROM credit WHERE customer_supplier_code = ? AND credit_date = ?", [credit_details.credit_cus_code[0], credit_details.date]);
+        const [creditChkRows] = await req.conn.execute("SELECT credit_id, credit_amount FROM credit WHERE customer_supplier_code = ? AND credit_date = ? AND organization_id = ?", [credit_details.credit_cus_code[0], credit_details.date, req.user.organization_id]);
 
         if (creditChkRows.length > 0) {
             const total = creditChkRows[0].credit_amount + credit_details.credit_amount;
@@ -90,8 +76,8 @@ exports.creditEntry = async (req, res) => {
             await req.conn.execute(creditUpdateSql, [total, creditChkRows[0].credit_id]);
             
         } else {
-            const creditInsertSql = "INSERT INTO credit(customer_supplier_code, credit_amount, credit_date) VALUES (?, ?, ?)";
-            await req.conn.execute(creditInsertSql, [credit_details.credit_cus_code[0], credit_details.credit_amount, credit_details.date]);
+            const creditInsertSql = "INSERT INTO credit(customer_supplier_code, credit_amount, credit_date, organization_id) VALUES (?, ?, ?, ?)";
+            await req.conn.execute(creditInsertSql, [credit_details.credit_cus_code[0], credit_details.credit_amount, credit_details.date, req.user.organization_id]);
             
         }
         res.status(200).send('Credit entry successful.');
@@ -106,7 +92,7 @@ exports.debitEntry = async (req, res) => {
     try {
         req.session.entry_date = debit_details.date;
 
-        const [debitChkRows] = await req.conn.execute("SELECT debit_id, debit_amount FROM debit WHERE customer_supplier_code = ? AND debit_date = ?", [debit_details.debit_cus_code[0], debit_details.date]);
+        const [debitChkRows] = await req.conn.execute("SELECT debit_id, debit_amount FROM debit WHERE customer_supplier_code = ? AND debit_date = ? AND organization_id = ?", [debit_details.debit_cus_code[0], debit_details.date, req.user.organization_id]);
 
         if (debitChkRows.length > 0) {
             const total = debitChkRows[0].debit_amount + debit_details.debit_amount;
@@ -118,13 +104,9 @@ exports.debitEntry = async (req, res) => {
                 console.error(th);
             }
         } else {
-            const debitInsertSql = "INSERT INTO debit(customer_supplier_code, debit_amount, debit_date) VALUES (?, ?, ?)";
-            await req.conn.execute(debitInsertSql, [debit_details.debit_cus_code[0], debit_details.debit_amount, debit_details.date]);
-            try {
-                await req.conn1.execute(debitInsertSql.replace('INSERT INTO ', 'INSERT INTO kanthimathi_'), [debit_details.debit_cus_code[0], debit_details.debit_amount, debit_details.date]);
-            } catch (th) {
-                console.error(th);
-            }
+            const debitInsertSql = "INSERT INTO debit(customer_supplier_code, debit_amount, debit_date, organization_id) VALUES (?, ?, ?, ?)";
+            await req.conn.execute(debitInsertSql, [debit_details.debit_cus_code[0], debit_details.debit_amount, debit_details.date, req.user.organization_id]);
+
         }
         res.status(200).send('Debit entry successful.');
     } catch (error) {
@@ -143,17 +125,13 @@ exports.deleteSales = async (req, res) => {
         await req.conn.execute(salesSql, [sales_details.sales_id]);
         // No conn1 delete for sales, following original PHP logic.
 
-        const [debitChkRows] = await req.conn.execute("SELECT debit_id, debit_amount FROM debit WHERE customer_supplier_code = ? AND debit_date = ?", [sales_details.customer_supplier_code, sales_details.sales_date]);
+        const [debitChkRows] = await req.conn.execute("SELECT debit_id, debit_amount FROM debit WHERE customer_supplier_code = ? AND debit_date = ? AND organization_id = ?", [sales_details.customer_supplier_code, sales_details.sales_date, req.user.organization_id]);
 
         if (debitChkRows.length > 0) {
             const total = debitChkRows[0].debit_amount - sales_details.sales_total;
             const debitUpdateSql = "UPDATE debit SET debit_amount = ? WHERE debit_id = ?";
             await req.conn.execute(debitUpdateSql, [total, debitChkRows[0].debit_id]);
-            try {
-                await req.conn1.execute(debitUpdateSql.replace('UPDATE ', 'UPDATE kanthimathi_'), [total, debitChkRows[0].debit_id]);
-            } catch (th) {
-                console.error(th);
-            }
+            
         }
         res.status(200).send(global.lang['sales deleted']);
     } catch (error) {
@@ -165,24 +143,20 @@ exports.deleteSales = async (req, res) => {
 exports.deletePurchase = async (req, res) => {
     // const purchase_details = req.body;
     try {
-        const [purchase_details] = await req.conn.execute("SELECT * FROM purchase where purchase_id = ?", [req.body.purchase_id]);
+        const [purchase_details] = await req.conn.execute("SELECT * FROM purchase where purchase_id = ? AND organization_id = ?", [req.body.purchase_id, req.user.organization_id]);
         const purchase_detail = purchase_details[0]
 
         const purchaseSql = "DELETE FROM `purchase` WHERE purchase_id = ?";
         await req.conn.execute(purchaseSql, [purchase_detail.purchase_id]);
         // No conn1 delete for purchase, following original PHP logic.
 
-        const [creditChkRows] = await req.conn.execute("SELECT credit_id, credit_amount FROM credit WHERE customer_supplier_code = ? AND credit_date = ?", [purchase_detail.customer_supplier_code, purchase_detail.purchase_date]);
+        const [creditChkRows] = await req.conn.execute("SELECT credit_id, credit_amount FROM credit WHERE customer_supplier_code = ? AND credit_date = ? AND organization_id = ?", [purchase_detail.customer_supplier_code, purchase_detail.purchase_date, req.user.organization_id]);
 
         if (creditChkRows.length > 0) {
             const total = creditChkRows[0].credit_amount - purchase_detail.purchase_total;
             const creditUpdateSql = "UPDATE credit SET credit_amount = ? WHERE credit_id = ?";
             await req.conn.execute(creditUpdateSql, [total, creditChkRows[0].credit_id]);
-            try {
-                await req.conn1.execute(creditUpdateSql.replace('UPDATE ', 'UPDATE kanthimathi_'), [total, creditChkRows[0].credit_id]);
-            } catch (th) {
-                console.error(th);
-            }
+            
         }
         res.status(200).send(global.lang['purchase deleted']);
     } catch (error) {
@@ -226,8 +200,8 @@ exports.getAllPurchaseEntries = async (req, res) => {
         const [rows] = await req.conn.execute("SELECT * FROM purchase pu \
         INNER JOIN customer_supplier cs ON cs.customer_supplier_code = pu.customer_supplier_code \
         INNER JOIN product pr ON pr.product_code = pu.product_code \
-        WHERE pu.purchase_date = ?", [req.query.date]);
-        res.json(rows);
+        WHERE pu.purchase_date = ? AND pu.organization_id = ?", [req.query.date, req.user.organization_id]);
+        res.json(rows, req.user.organization_id);
     } catch (error) {
         console.error('Error fetching purchase entries:', error);
         res.status(500).send('Error fetching purchase entries');
@@ -239,7 +213,7 @@ exports.getAllSalesEntries = async (req, res) => {
         const [rows] = await req.conn.execute("SELECT * FROM sales sa \
         INNER JOIN customer_supplier cs ON cs.customer_supplier_code = sa.customer_supplier_code \
         INNER JOIN product pr ON pr.product_code = sa.product_code \
-        WHERE sa.sales_date = ?", [req.query.date]);
+        WHERE sa.sales_date = ? AND sa.organization_id = ?", [req.query.date, req.user.organization_id]);
         res.json(rows);
     } catch (error) {
         console.error('Error fetching sales entries:', error);
@@ -332,33 +306,23 @@ exports.purchaseEntryBulk = async (req, res) => {
             const pro_price_total_rounded = Math.round(item.price_total);
             grandTotal += pro_price_total_rounded;
 
-            const purchaseSql = "INSERT INTO purchase(product_code, customer_supplier_code, purchase_quality, purchase_rate, purchase_total, purchase_date, purchase_unit, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-            const purchaseValues = [item.product_code, customer_supplier_code, item.quality, item.price, pro_price_total_rounded, date, item.unit, userId];
+            const purchaseSql = "INSERT INTO purchase(product_code, customer_supplier_code, purchase_quality, purchase_rate, purchase_total, purchase_date, purchase_unit, user_id, organization_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            const purchaseValues = [item.product_code, customer_supplier_code, item.quality, item.price, pro_price_total_rounded, date, item.unit, userId, req.user.organization_id];
 
             await req.conn.execute(purchaseSql, purchaseValues);
 
-            // Sync to conn1 if it exists
-            try {
-                if (req.conn1) await req.conn1.execute(purchaseSql.replace('INSERT INTO ', 'INSERT INTO kanthimathi_'), purchaseValues);
-            } catch (th) { console.error(th); }
         }
 
         // 2. Update Credit Table ONCE with the Grand Total
-        const [creditChkRows] = await req.conn.execute("SELECT credit_id, credit_amount FROM credit WHERE customer_supplier_code = ? AND credit_date = ?", [customer_supplier_code, date]);
+        const [creditChkRows] = await req.conn.execute("SELECT credit_id, credit_amount FROM credit WHERE customer_supplier_code = ? AND credit_date = ? AND organization_id = ?", [customer_supplier_code, date, req.user.organization_id]);
 
         if (creditChkRows.length > 0) {
             const total = creditChkRows[0].credit_amount + grandTotal;
             const creditUpdateSql = "UPDATE credit SET credit_amount = ? WHERE credit_id = ?";
             await req.conn.execute(creditUpdateSql, [total, creditChkRows[0].credit_id]);
-            try {
-                if (req.conn1) await req.conn1.execute(creditUpdateSql.replace('UPDATE ', 'UPDATE kanthimathi_'), [total, creditChkRows[0].credit_id]);
-            } catch (th) { console.error(th); }
         } else {
-            const creditInsertSql = "INSERT INTO credit(customer_supplier_code, credit_amount, credit_date) VALUES (?, ?, ?)";
-            await req.conn.execute(creditInsertSql, [customer_supplier_code, grandTotal, date]);
-            try {
-                if (req.conn1) await req.conn1.execute(creditInsertSql.replace('INSERT INTO ', 'INSERT INTO kanthimathi_'), [customer_supplier_code, grandTotal, date]);
-            } catch (th) { console.error(th); }
+            const creditInsertSql = "INSERT INTO credit(customer_supplier_code, credit_amount, credit_date, organization_id) VALUES (?, ?, ?, ?)";
+            await req.conn.execute(creditInsertSql, [customer_supplier_code, grandTotal, date, req.user.organization_id]);
         }
 
         res.status(200).send('Bulk Purchase entry successful.');
@@ -385,22 +349,22 @@ exports.salesEntryBulk = async (req, res) => {
             const pro_price_total_rounded = Math.round(item.price_total);
             grandTotal += pro_price_total_rounded;
 
-            const salesSql = "INSERT INTO sales(product_code, customer_supplier_code, sales_quality, sales_rate, sales_total, sales_date, sales_unit, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-            const salesValues = [item.product_code, customer_supplier_code, item.quality, item.price, pro_price_total_rounded, date, item.unit, userId];
+            const salesSql = "INSERT INTO sales(product_code, customer_supplier_code, sales_quality, sales_rate, sales_total, sales_date, sales_unit, user_id, organization_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            const salesValues = [item.product_code, customer_supplier_code, item.quality, item.price, pro_price_total_rounded, date, item.unit, userId, req.user.organization_id];
 
             await req.conn.execute(salesSql, salesValues);
         }
 
         // 2. Update Debit Table ONCE with the Grand Total
-        const [debitChkRows] = await req.conn.execute("SELECT debit_id, debit_amount FROM debit WHERE customer_supplier_code = ? AND debit_date = ?", [customer_supplier_code, date]);
+        const [debitChkRows] = await req.conn.execute("SELECT debit_id, debit_amount FROM debit WHERE customer_supplier_code = ? AND debit_date = ? AND organization_id = ?", [customer_supplier_code, date, req.user.organization_id]);
 
         if (debitChkRows.length > 0) {
             const total = debitChkRows[0].debit_amount + grandTotal;
             const debitUpdateSql = "UPDATE debit SET debit_amount = ? WHERE debit_id = ?";
             await req.conn.execute(debitUpdateSql, [total, debitChkRows[0].debit_id]);
         } else {
-            const debitInsertSql = "INSERT INTO debit(customer_supplier_code, debit_amount, debit_date) VALUES (?, ?, ?)";
-            await req.conn.execute(debitInsertSql, [customer_supplier_code, grandTotal, date]);
+            const debitInsertSql = "INSERT INTO debit(customer_supplier_code, debit_amount, debit_date, organization_id) VALUES (?, ?, ?, ?)";
+            await req.conn.execute(debitInsertSql, [customer_supplier_code, grandTotal, date, req.user.organization_id]);
         }
 
         res.status(200).send('Bulk Sales entry successful.');

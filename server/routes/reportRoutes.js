@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const reportController = require('../controllers/reportController');
+const { tokenProtect } = require('../middleware/auth');
 
-router.get('/summary', reportController.getReportSummary);
-router.get('/tamil-months', reportController.getTamilMonths);
-router.get('/print-details', reportController.getPrintDetails);
+router.get('/summary', tokenProtect, reportController.getReportSummary);
+router.get('/tamil-months', tokenProtect, reportController.getTamilMonths);
+router.get('/print-details', tokenProtect, reportController.getPrintDetails);
 
 module.exports = router;

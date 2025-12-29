@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("refreshToken", refreshToken);
     setAuthState({
       isAuthenticated: true,
-      user,
+      user: user,
       loading: false,
     });
     navigate("/");

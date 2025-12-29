@@ -5,27 +5,19 @@ class Product {
     }
 
     async addProduct(details) {
-        const sql = "INSERT INTO product (product_name, product_code, product_price, product_quality, product_unit) VALUES (?, ?, ?, ?, ?)";
-        const values = [details.pro_name, details.pro_code, details.pro_price, details.pro_quality, details.pro_unit];
+        const sql = "INSERT INTO product (product_name, product_code, product_price, product_quality, product_unit, organization_id) VALUES (?, ?, ?, ?, ?, ?)";
+        const values = [details.pro_name, details.pro_code, details.pro_price, details.pro_quality, details.pro_unit, details.organization_id];
 
         await this.conn.execute(sql, values);
-        try {
-            await this.conn1.execute(sql.replace('INSERT INTO ', 'INSERT INTO kanthimathi_'), values);
-        } catch (th) {
-            console.error(th);
-        }
+        
     }
 
     async updateProduct(details) {
-        const sql = "UPDATE product SET product_name = ?, product_price = ?, product_quality = ?, product_unit = ? WHERE product_code = ?";
-        const values = [details.name, details.price, details.quality, details.unit, details.code];
+        const sql = "UPDATE product SET product_name = ?, product_price = ?, product_quality = ?, product_unit = ? WHERE product_code = ? AND organization_id = ?";
+        const values = [details.name, details.price, details.quality, details.unit, details.code, details.organization_id];
         console.log(values);
         await this.conn.execute(sql, values);
-        try {
-            await this.conn1.execute(sql.replace('UPDATE ', 'UPDATE kanthimathi_'), values);
-        } catch (th) {
-            console.error(th);
-        }
+        
     }
 }
 

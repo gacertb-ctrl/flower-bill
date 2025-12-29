@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext'; // Import your AuthContext
 
 function Navbar() {
   const [isCollapsed, setIsCollapsed] = useState(true);
@@ -8,6 +9,8 @@ function Navbar() {
 
   const toggleNavbar = () => setIsCollapsed(!isCollapsed);
   const closeNavbar = () => setIsCollapsed(true);
+
+  const { user, logout } = useAuth(); // Get user data
 
   return (
     <nav className="navbar navbar-expand-lg bg-light fixed-top">
@@ -49,7 +52,19 @@ function Navbar() {
             <li className="nav-item">
               <Link className="nav-link" to="/debit-credit" onClick={closeNavbar}>{t('debitCredit')}</Link>
             </li>
+            {/* New Settings Link */}
+            <li className="nav-item">
+              <Link className="nav-link" to="/settings">{t('settings')}</Link>
+            </li>
+
+            {/* Admin Only Link */}
+            {user && user.role === 'admin' && (
+              <li className="nav-item">
+                <Link className="nav-link" to="/users">{t('manage_users')}</Link>
+              </li>
+            )}
           </ul>
+          <button className="btn btn-outline-dark" onClick={logout}>{t('logout')}</button>
         </div>
       </div>
     </nav>

@@ -9,7 +9,7 @@ async function getStock(req, res) {
 
     try {
         const stockModel = new Stock(db);
-        const stockDetails = await stockModel.getStockDetails(date);
+        const stockDetails = await stockModel.getStockDetails(date, req.user.organization_id);
         res.json(stockDetails);
     } catch (error) {
         console.error('Error fetching stock details:', error);

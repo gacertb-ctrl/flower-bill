@@ -8,9 +8,9 @@ exports.getDebitEntries = async (req, res) => {
             SELECT de.*, cs.customer_supplier_name 
             FROM debit de 
             INNER JOIN customer_supplier cs ON cs.customer_supplier_code = de.customer_supplier_code
-            WHERE de.debit_date = ? AND cs.supplier = 'Y'
+            WHERE de.debit_date = ? AND cs.supplier = 'Y' AND cs.organization_id = ?
         `;
-        const [rows] = await db.query(sql, [date]);
+        const [rows] = await db.query(sql, [date, req.user.organization_id]);
         res.json(rows);
     } catch (error) {
         console.error(error);
@@ -26,9 +26,9 @@ exports.getCreditEntries = async (req, res) => {
             SELECT cr.*, cs.customer_supplier_name 
             FROM credit cr 
             INNER JOIN customer_supplier cs ON cs.customer_supplier_code = cr.customer_supplier_code
-            WHERE cr.credit_date = ? AND cs.customer = 'Y'
+            WHERE cr.credit_date = ? AND cs.customer = 'Y' AND cs.organization_id = ?
         `;
-        const [rows] = await db.query(sql, [date]);
+        const [rows] = await db.query(sql, [date, req.user.organization_id]);
         res.json(rows);
     } catch (error) {
         console.error(error);
@@ -43,11 +43,11 @@ exports.createDebitEntry = async (req, res) => {
         // Assuming 'debit_quality' and 'debit_total' might be used for remarks or similar in your schema, 
         // but based on standard ledger logic, we focus on amount.
         const sql = `
-            INSERT INTO debit (customer_supplier_code, debit_amount, debit_date) 
-            VALUES (?, ?, ?)
+            INSERT INTO debit (customer_supplier_code, debit_amount, debit_date, organization_id) 
+            VALUES (?, ?, ?, ?)
         `;
         // mapped amount to total as well just in case structure requires it
-        await db.query(sql, [customer_supplier_code, amount, date]);
+        await db.query(sql, [customer_supplier_code, amount, date, req.user.organization_id]);
         res.status(201).json({ message: "Debit entry created" });
     } catch (error) {
         console.error(error);
@@ -60,10 +60,10 @@ exports.createCreditEntry = async (req, res) => {
     try {
         const { customer_supplier_code, amount, date } = req.body;
         const sql = `
-            INSERT INTO credit (customer_supplier_code, credit_amount, credit_date) 
-            VALUES (?, ?, ? )
+            INSERT INTO credit (customer_supplier_code, credit_amount, credit_date, organization_id) 
+            VALUES (?, ?, ?, ?)
         `;
-        await db.query(sql, [customer_supplier_code, amount, date]);
+        await db.query(sql, [customer_supplier_code, amount, date, req.user.organization_id]);
         res.status(201).json({ message: "Credit entry created" });
     } catch (error) {
         console.error(error);

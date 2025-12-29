@@ -17,7 +17,11 @@ const stockRoutes = require('./routes/stockRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const reportViewsRouter = require('./routes/reportViews');
 const debitCreditRoutes = require('./routes/debitCreditRoutes');
+const orgRoutes = require('./routes/orgRoutes');
+const userRoutes = require('./routes/userRoutes');
+
 const pool = require('./db/connection');
+const path = require('path');
 const cron = require('node-cron'); // Import cron
 const { backupDatabase } = require('./utils/backupService'); // Import your new service
 
@@ -74,9 +78,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// Create temp folder
+// Create temp directory if not exists
+const fs = require('fs');
 const tempDir = path.join(__dirname, 'temp');
-if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir);
+}
 
 // Routes
 app.use('/customer', customerRoutes);
@@ -88,9 +95,12 @@ app.use('/stock', stockRoutes);
 app.use('/report', reportRoutes);
 app.use('/reports', reportViewsRouter);
 app.use('/debit-credit', debitCreditRoutes);
+app.use('/org', orgRoutes);
+app.use('/users', userRoutes);
 
+// Root route (optional, for testing)
 app.get('/', (req, res) => {
-  res.send('Kanthimathi API running – CORS fixed!');
+    res.send('Welcome to the Kanthimathi API!');
 });
 
 // Schedule task to run every day at 11:55 PM

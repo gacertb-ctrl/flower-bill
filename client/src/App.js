@@ -15,6 +15,9 @@ import Navbar from './components/Navbar';
 import ReportPage from './pages/ReportPage';
 import ReportPrintView from './pages/ReportPrintView';
 import DebitCreditPage from './pages/DebitCreditPage';
+import SettingsPage from './pages/SettingsPage';
+import UserManagementPage from './pages/UserManagementPage';
+
 import '@fortawesome/fontawesome-svg-core/styles.css';
 
 function AppContent() {
@@ -36,6 +39,8 @@ function AppContent() {
         <Route path="/entries" element={<EntryPage />} />
         <Route path="/report" element={<ReportPage />} />
         <Route path="/debit-credit" element={<DebitCreditPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/users" element={<UserManagementPage />} />
       </Routes>
       {!isPrint && <Footer />}
     </>

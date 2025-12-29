@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 exports.login = async (req, res) => {
-    // try {
+    try {
         const { username, password } = req.body;
         // Validate input
         if (!username || !password) {
@@ -21,7 +21,6 @@ exports.login = async (req, res) => {
         }
 
         const user = users[0];
-        console.log(users);
 
         // Verify password
         const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -31,9 +30,9 @@ exports.login = async (req, res) => {
         console.log('JWT_SECRET:', { id: user.user_id, username: user.username, role: user.role });
         // Generate JWT tokens
         const token = jwt.sign(
-            { id: user.user_id, username: user.username, role: user.role },
+            { id: user.user_id, username: user.username, role: user.role, organization_id: user.organization_id },
             process.env.JWT_SECRET,
-            { expiresIn: '1h' }
+            { expiresIn: '1d' }
         );
 
         const refreshToken = jwt.sign(
@@ -47,13 +46,14 @@ exports.login = async (req, res) => {
             id: user.id,
             username: user.username,
             name: user.name,
-            role: user.role
+            role: user.role, // Important for frontend
+            organization_id: user.organization_id
         };
 
         res.json({ token, refreshToken, user: userData });
-    // } catch (err) {
-    //     res.status(500).json({ error: err.message });
-    // }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 };
 
 exports.checkAuth = async (req, res) => {
