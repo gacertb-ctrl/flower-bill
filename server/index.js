@@ -5,7 +5,6 @@ require('dotenv').config();
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const path = require('path');
-const fs = require('fs');
 
 // Routes
 const customerRoutes = require('./routes/customerRoutes');
@@ -78,7 +77,6 @@ app.use((req, res, next) => {
 });
 
 // Create temp directory if not exists
-const fs = require('fs');
 const tempDir = path.join(__dirname, 'temp');
 if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir);
