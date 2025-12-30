@@ -5,6 +5,7 @@ require('dotenv').config();
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const path = require('path');
+const fs = require('fs');
 
 // Routes
 const customerRoutes = require('./routes/customerRoutes');
