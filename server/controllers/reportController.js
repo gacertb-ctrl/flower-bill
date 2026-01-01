@@ -17,22 +17,24 @@ const getTamilMonthDates = async (month, year) => {
 };
 
 exports.getTamilMonths = async (req, res) => {
-    try {
-        // ❌ OLD (INVALID with ONLY_FULL_GROUP_BY)
-        // const [rows] = await db.query(
-        //     "SELECT * FROM tamil_calendar GROUP BY tamil_month_name_en"
-        // );
+  try {
+    const [rows] = await db.query(`
+      SELECT
+        MIN(id) AS id,
+        tamil_month_name_en,
+        tamil_month_name_ta
+      FROM tamil_calendar
+      GROUP BY
+        tamil_month_name_en,
+        tamil_month_name_ta
+      ORDER BY id
+    `);
 
-        // ✅ FIXED (structure unchanged, only query corrected)
-        const [rows] = await db.query(
-            "SELECT MIN(id) AS id, tamil_month_name_en, tamil_month_name_ta FROM tamil_calendar GROUP BY tamil_month_name_en"
-        );
-
-        res.json(rows);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: error.message });
-    }
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
 };
 
 exports.getReportSummary = async (req, res) => {
