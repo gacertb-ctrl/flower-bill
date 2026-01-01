@@ -37,10 +37,11 @@ const backupDatabase = async () => {
         // 3. Create DB Dump
         await mysqldump({
             connection: {
-                host: process.env.DB_HOST,
-                user: process.env.DB_USER,
-                password: process.env.DB_PASSWORD,
-                database: process.env.DB_NAME,
+                host: 'mysql-377652b8-gacertb-abf0.g.aivencloud.com',
+                user: 'avnadmin',
+                password: 'AVNS_7DMZCGdPbK8WSsWHgRl',
+                database: 'defaultdb',
+                port: '16840'
             },
             dumpToFile: filePath,
         });
