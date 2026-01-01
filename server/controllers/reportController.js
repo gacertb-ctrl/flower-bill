@@ -38,77 +38,91 @@ exports.getTamilMonths = async (req, res) => {
 };
 
 exports.getReportSummary = async (req, res) => {
-    try {
-        const { period_type, report_type, month, year, date } = req.query;
-        let sql = "";
-        let params = [];
+  try {
+    const { period_type, report_type, month, year, date } = req.query;
 
-        const pageType = report_type === 'purchase' ? 'supplier' : 'customer';
+    let sql = '';
+    let params = [];
 
-        if (period_type === 'month') {
-            const dates = await getTamilMonthDates(month, year);
-            if (dates.length === 0) return res.json([]);
+    const pageType = report_type === 'purchase' ? 'supplier' : 'customer';
 
-            // Format dates for IN clause safely
-            const dateList = dates
-                .map(d => {
-                    const dateObj = new Date(d.date);
-                    return `'${dateObj.toISOString().slice(0, 10)}'`; // yyyy-mm-dd
-                })
-                .join(',');
+    if (period_type === 'month') {
+      const dates = await getTamilMonthDates(month, year);
+      if (!dates.length) return res.json([]);
 
-            sql = `
-                SELECT cs.*, 
-                COALESCE(de.debit_amount, 0) AS debit_amount, 
-                COALESCE(cr.credit_amount, 0) AS credit_amount 
-                FROM customer_supplier cs 
-                LEFT JOIN (
-                    SELECT sum(debit_amount) AS debit_amount, customer_supplier_code 
-                    FROM debit 
-                    WHERE debit_date IN (${dateList}) 
-                    GROUP BY customer_supplier_code
-                ) de ON de.customer_supplier_code = cs.customer_supplier_code 
-                LEFT JOIN (
-                    SELECT sum(credit_amount) AS credit_amount, customer_supplier_code 
-                    FROM credit 
-                    WHERE credit_date IN (${dateList}) 
-                    GROUP BY customer_supplier_code
-                ) cr ON cr.customer_supplier_code = cs.customer_supplier_code 
-                WHERE cs.${pageType} = 'Y' AND cs.customer_supplier_is_active = 'Y' AND cs.organization_id = ?
-                GROUP BY cs.customer_supplier_code
-            `;
-        } else {
-            sql = `
-                SELECT cs.*, 
-                COALESCE(de.debit_amount, 0) AS debit_amount, 
-                COALESCE(cr.credit_amount, 0) AS credit_amount 
-                FROM customer_supplier cs 
-                LEFT JOIN (
-                    SELECT sum(debit_amount) AS debit_amount, customer_supplier_code 
-                    FROM debit 
-                    WHERE debit_date = ? 
-                    GROUP BY customer_supplier_code
-                ) de ON de.customer_supplier_code = cs.customer_supplier_code 
-                LEFT JOIN (
-                    SELECT sum(credit_amount) AS credit_amount, customer_supplier_code 
-                    FROM credit 
-                    WHERE credit_date = ? 
-                    GROUP BY customer_supplier_code
-                ) cr ON cr.customer_supplier_code = cs.customer_supplier_code 
-                WHERE cs.${pageType} = 'Y' AND cs.customer_supplier_is_active = 'Y' AND cs.organization_id = ?
-                GROUP BY cs.customer_supplier_code
-            `;
-            params.push(date, date);
-        }
-        params.push(req.user.organization_id);
-        const [rows] = await db.query(sql, params);
-        res.json(rows);
+      const dateList = dates.map(d => d.date); // yyyy-mm-dd
 
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error generating report" });
+      sql = `
+        SELECT
+          cs.*,
+          COALESCE(de.debit_amount, 0) AS debit_amount,
+          COALESCE(cr.credit_amount, 0) AS credit_amount
+        FROM customer_supplier cs
+        LEFT JOIN (
+          SELECT
+            customer_supplier_code,
+            SUM(debit_amount) AS debit_amount
+          FROM debit
+          WHERE debit_date IN (?)
+          GROUP BY customer_supplier_code
+        ) de ON de.customer_supplier_code = cs.customer_supplier_code
+        LEFT JOIN (
+          SELECT
+            customer_supplier_code,
+            SUM(credit_amount) AS credit_amount
+          FROM credit
+          WHERE credit_date IN (?)
+          GROUP BY customer_supplier_code
+        ) cr ON cr.customer_supplier_code = cs.customer_supplier_code
+        WHERE
+          cs.${pageType} = 'Y'
+          AND cs.customer_supplier_is_active = 'Y'
+          AND cs.organization_id = ?
+      `;
+
+      params.push(dateList, dateList, req.user.organization_id);
+
+    } else {
+      sql = `
+        SELECT
+          cs.*,
+          COALESCE(de.debit_amount, 0) AS debit_amount,
+          COALESCE(cr.credit_amount, 0) AS credit_amount
+        FROM customer_supplier cs
+        LEFT JOIN (
+          SELECT
+            customer_supplier_code,
+            SUM(debit_amount) AS debit_amount
+          FROM debit
+          WHERE debit_date = ?
+          GROUP BY customer_supplier_code
+        ) de ON de.customer_supplier_code = cs.customer_supplier_code
+        LEFT JOIN (
+          SELECT
+            customer_supplier_code,
+            SUM(credit_amount) AS credit_amount
+          FROM credit
+          WHERE credit_date = ?
+          GROUP BY customer_supplier_code
+        ) cr ON cr.customer_supplier_code = cs.customer_supplier_code
+        WHERE
+          cs.${pageType} = 'Y'
+          AND cs.customer_supplier_is_active = 'Y'
+          AND cs.organization_id = ?
+      `;
+
+      params.push(date, date, req.user.organization_id);
     }
+
+    const [rows] = await db.query(sql, params);
+    res.json(rows);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error generating report' });
+  }
 };
+
 
 exports.getPrintDetails = async (req, res) => {
     try {
