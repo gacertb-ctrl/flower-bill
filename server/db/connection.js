@@ -2,11 +2,11 @@
 const mysql = require('mysql2');
 
 const pool = mysql.createPool({
-    host: 'maglev.proxy.rlwy.net',
-    user: 'root',
-    password: 'oMZgUEgxQxFidcLztVrAsBSBAJSlRCdo',
-    database: 'railway',
-    port: '39245',
+    host: 'mysql-377652b8-gacertb-abf0.g.aivencloud.com',
+    user: 'avnadmin',
+    password: 'AVNS_7DMZCGdPbK8WSsWHgRl',
+    database: 'defaultdb',
+    port: '16840',
 });
 
 module.exports = pool.promise();
