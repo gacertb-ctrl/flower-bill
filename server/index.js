@@ -107,7 +107,7 @@ cron.schedule('55 23 * * *', () => {
     console.log('⏰ Running Daily Backup Job...');
     backupDatabase();
 });
-
+backupDatabase();
 // ──────── Start server ────────
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server live on port ${PORT}`);
