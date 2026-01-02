@@ -1,4 +1,3 @@
-// server/db/connection.js
 const mysql = require('mysql2');
 
 const pool = mysql.createPool({
@@ -8,5 +7,7 @@ const pool = mysql.createPool({
     database: 'flower_bill',
     port: '3306',
 });
+
+
 
 module.exports = pool.promise();
