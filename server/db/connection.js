@@ -1,13 +1,10 @@
 const mysql = require('mysql2');
-
 const pool = mysql.createPool({
-    host: '15.207.100.11',
-    user: 'flower_bill',
-    password: '2b4acijjZEcmdwnm',
-    database: 'flower_bill',
-    port: '3306',
+    host: 'mysql-377652b8-gacertb-abf0.g.aivencloud.com',
+    user: 'avnadmin',
+    password: 'AVNS_7DMZCGdPbK8WSsWHgRl',
+    database: 'defaultdb',
+    port: '16840',
 });
-
-
 
 module.exports = pool.promise();
