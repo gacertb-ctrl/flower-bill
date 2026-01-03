@@ -138,8 +138,15 @@ exports.getPrintDetails = async (req, res) => {
                 cs.customer_supplier_code,
                 ANY_VALUE(cs.customer_supplier_id) as customer_supplier_id,
                 ANY_VALUE(cs.customer_supplier_name) as customer_supplier_name,
-                ANY_VALUE(cs.customer_supplier_mobile) as customer_supplier_mobile,
-                ANY_VALUE(cs.customer_supplier_address) as customer_supplier_address
+                ANY_VALUE(cs.customer_supplier_contact_no) as customer_supplier_contact_no,
+                ANY_VALUE(cs.customer_supplier_address) as customer_supplier_address,
+                ANY_VALUE(cs.customer) as customer,
+                ANY_VALUE(cs.customer_supplier_code) as customer_supplier_code,
+                ANY_VALUE(cs.supplier) as supplier,
+                ANY_VALUE(cs.customer_supplier_is_active) as customer_supplier_is_active,
+                ANY_VALUE(cs.supplier_commission) as supplier_commission,
+                ANY_VALUE(cs.S_no) as S_no,
+                ANY_VALUE(cs.organization_id) as organization_id,                
             FROM customer_supplier cs 
             INNER JOIN ${report_type} en ON en.customer_supplier_code = cs.customer_supplier_code 
             WHERE cs.${pageType} = 'Y' AND cs.customer_supplier_is_active = 'Y' AND cs.organization_id = ?`;
