@@ -63,8 +63,7 @@ const getAllSuppliers = async (req, res) => {
 
 const getLastSupplierTransactions = async (req, res) => {
     try {
-        const { cus_sup_code } = req.body;
-        const [rows] = await req.conn.execute("SELECT credit_amount as total, credit_date as date, 'purchase' as type, customer_supplier_code FROM credit WHERE customer_supplier_code = ? ORDER BY credit_id DESC LIMIT 5", [cus_sup_code]);
+        const [rows] = await req.conn.execute("SELECT credit_amount as total, credit_date as date, 'purchase' as type, customer_supplier_code FROM credit WHERE customer_supplier_code = ? ORDER BY credit_id DESC LIMIT 5", [req.params.code]);
         res.json(rows);
     } catch (error) {
         console.error('Error fetching last supplier transactions:', error);

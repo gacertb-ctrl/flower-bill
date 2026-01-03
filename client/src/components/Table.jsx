@@ -17,13 +17,14 @@ const Table = ({ page, data, setShowModal, setEditData, loadLastTransaction, del
     const commonActions = {
       name: t('action'),
       cell: (row) => (
+
         <div className="d-flex">
           <button
             className="btn btn-primary btn-sm me-1"
             title={t('edit')}
             onClick={() => handleEdit(row)}
           >
-            <FontAwesomeIcon icon={faPen} />;
+            <FontAwesomeIcon icon={faPen} />
           </button>
           <button
             className="btn btn-info btn-sm me-1 text-white"

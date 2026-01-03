@@ -17,8 +17,8 @@ const getTamilMonthDates = async (month, year) => {
 };
 
 exports.getTamilMonths = async (req, res) => {
-  try {
-    const [rows] = await db.query(`
+    try {
+        const [rows] = await db.query(`
       SELECT
         MIN(id) AS id,
         tamil_month_name_en,
@@ -30,29 +30,29 @@ exports.getTamilMonths = async (req, res) => {
       ORDER BY id
     `);
 
-    res.json(rows);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: error.message });
-  }
+        res.json(rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
 };
 
 exports.getReportSummary = async (req, res) => {
-  try {
-    const { period_type, report_type, month, year, date } = req.query;
+    try {
+        const { period_type, report_type, month, year, date } = req.query;
 
-    let sql = '';
-    let params = [];
+        let sql = '';
+        let params = [];
 
-    const pageType = report_type === 'purchase' ? 'supplier' : 'customer';
+        const pageType = report_type === 'purchase' ? 'supplier' : 'customer';
 
-    if (period_type === 'month') {
-      const dates = await getTamilMonthDates(month, year);
-      if (!dates.length) return res.json([]);
+        if (period_type === 'month') {
+            const dates = await getTamilMonthDates(month, year);
+            if (!dates.length) return res.json([]);
 
-      const dateList = dates.map(d => d.date); // yyyy-mm-dd
+            const dateList = dates.map(d => d.date); // yyyy-mm-dd
 
-      sql = `
+            sql = `
         SELECT
           cs.*,
           COALESCE(de.debit_amount, 0) AS debit_amount,
@@ -80,10 +80,10 @@ exports.getReportSummary = async (req, res) => {
           AND cs.organization_id = ?
       `;
 
-      params.push(dateList, dateList, req.user.organization_id);
+            params.push(dateList, dateList, req.user.organization_id);
 
-    } else {
-      sql = `
+        } else {
+            sql = `
         SELECT
           cs.*,
           COALESCE(de.debit_amount, 0) AS debit_amount,
@@ -111,16 +111,16 @@ exports.getReportSummary = async (req, res) => {
           AND cs.organization_id = ?
       `;
 
-      params.push(date, date, req.user.organization_id);
+            params.push(date, date, req.user.organization_id);
+        }
+
+        const [rows] = await db.query(sql, params);
+        res.json(rows);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error generating report' });
     }
-
-    const [rows] = await db.query(sql, params);
-    res.json(rows);
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error generating report' });
-  }
 };
 
 
@@ -131,26 +131,24 @@ exports.getPrintDetails = async (req, res) => {
 
         let customers = [];
 
-        // 1. Fetch Customers - FIXED SQL QUERY BELOW
-        // Instead of SELECT *, we select the code and wrap other needed fields in ANY_VALUE
+        // 1. Fetch Customers - FIXED using MAX() for compatibility
         let customerSql = `
             SELECT 
                 cs.customer_supplier_code,
-                ANY_VALUE(cs.customer_supplier_id) as customer_supplier_id,
-                ANY_VALUE(cs.customer_supplier_name) as customer_supplier_name,
-                ANY_VALUE(cs.customer_supplier_contact_no) as customer_supplier_contact_no,
-                ANY_VALUE(cs.customer_supplier_address) as customer_supplier_address,
-                ANY_VALUE(cs.customer) as customer,
-                ANY_VALUE(cs.customer_supplier_code) as customer_supplier_code,
-                ANY_VALUE(cs.supplier) as supplier,
-                ANY_VALUE(cs.customer_supplier_is_active) as customer_supplier_is_active,
-                ANY_VALUE(cs.supplier_commission) as supplier_commission,
-                ANY_VALUE(cs.S_no) as S_no,
-                ANY_VALUE(cs.organization_id) as organization_id,                
+                MAX(cs.customer_supplier_id) as customer_supplier_id,
+                MAX(cs.customer_supplier_name) as customer_supplier_name,
+                MAX(cs.customer_supplier_contact_no) as customer_supplier_contact_no,
+                MAX(cs.customer_supplier_address) as customer_supplier_address,
+                MAX(cs.customer) as customer,
+                MAX(cs.supplier) as supplier,
+                MAX(cs.customer_supplier_is_active) as customer_supplier_is_active,
+                MAX(cs.supplier_commission) as supplier_commission,
+                MAX(cs.S_no) as S_no,
+                MAX(cs.organization_id) as organization_id
             FROM customer_supplier cs 
             INNER JOIN ${report_type} en ON en.customer_supplier_code = cs.customer_supplier_code 
             WHERE cs.${pageType} = 'Y' AND cs.customer_supplier_is_active = 'Y' AND cs.organization_id = ?`;
-        
+
         let customerParams = [];
 
         if (period_type === 'date') {
@@ -159,11 +157,9 @@ exports.getPrintDetails = async (req, res) => {
         } else {
             const dates = await getTamilMonthDates(month, year);
             if (dates.length === 0) return res.json([]);
+
             const dateList = dates
-                .map(d => {
-                    const dateObj = new Date(d.date);
-                    return `'${dateObj.toISOString().slice(0, 10)}'`; 
-                })
+                .map(d => `'${new Date(d.date).toISOString().slice(0, 10)}'`)
                 .join(',');
             customerSql += ` AND en.${report_type}_date IN (${dateList}) `;
         }
@@ -172,7 +168,7 @@ exports.getPrintDetails = async (req, res) => {
             customerSql += " AND cs.customer_supplier_code = ? ";
             customerParams.push(code);
         }
-        
+
         customerParams.unshift(req.user.organization_id);
         customerSql += " GROUP BY cs.customer_supplier_code";
 
@@ -186,6 +182,7 @@ exports.getPrintDetails = async (req, res) => {
             let dataObj = { ...customer };
 
             if (period_type === 'date') {
+                // Fetch Items
                 const [items] = await db.query(`
                     SELECT *, ${report_type}_quality as quality, ${report_type}_rate as rate, 
                     ${report_type}_total as total 
@@ -194,9 +191,11 @@ exports.getPrintDetails = async (req, res) => {
                     WHERE en.${report_type}_date = ? AND en.customer_supplier_code = ? AND en.organization_id = ?
                 `, [date, customer.customer_supplier_code, req.user.organization_id]);
 
+                // Calculate Totals (Opening Balance)
                 const [debitRes] = await db.query(`SELECT SUM(debit_amount) as amount FROM debit WHERE customer_supplier_code = ? AND debit_date < ? AND organization_id = ?`, [customer.customer_supplier_code, date, req.user.organization_id]);
                 const [creditRes] = await db.query(`SELECT SUM(credit_amount) as amount FROM credit WHERE customer_supplier_code = ? AND credit_date < ? AND organization_id = ?`, [customer.customer_supplier_code, date, req.user.organization_id]);
 
+                // Today's Payment/Receipt
                 let todayPaySql = report_type === 'purchase'
                     ? `SELECT debit_amount as amount FROM debit WHERE customer_supplier_code = ? AND debit_date = ? AND organization_id = ?`
                     : `SELECT credit_amount as amount FROM credit WHERE customer_supplier_code = ? AND credit_date = ? AND organization_id = ?`;
@@ -211,16 +210,22 @@ exports.getPrintDetails = async (req, res) => {
                 dataObj.tamil_date = tamilDateRes[0] || {};
 
             } else {
+                // Monthly Logic
+                // const { getTamilMonthDates } = require('../utils/tamilDateHelper');
                 const tamilDates = await getTamilMonthDates(month, year);
                 dataObj.date_ranges = tamilDates;
-                
+
                 const dateStrings = tamilDates.map(d => `'${new Date(d.date).toISOString().slice(0, 10)}'`).join(',');
 
-                const [dailyDebits] = await db.query(`SELECT debit_date, SUM(debit_amount) as amount FROM debit WHERE customer_supplier_code = ? AND debit_date IN (${dateStrings}) AND organization_id = ? GROUP BY debit_date`, [customer.customer_supplier_code, req.user.organization_id]);
-                const [dailyCredits] = await db.query(`SELECT credit_date, SUM(credit_amount) as amount FROM credit WHERE customer_supplier_code = ? AND credit_date IN (${dateStrings}) AND organization_id = ? GROUP BY credit_date`, [customer.customer_supplier_code, req.user.organization_id]);
-
-                dataObj.daily_debits = dailyDebits;
-                dataObj.daily_credits = dailyCredits;
+                if (dateStrings) {
+                    const [dailyDebits] = await db.query(`SELECT debit_date, SUM(debit_amount) as amount FROM debit WHERE customer_supplier_code = ? AND debit_date IN (${dateStrings}) AND organization_id = ? GROUP BY debit_date`, [customer.customer_supplier_code, req.user.organization_id]);
+                    const [dailyCredits] = await db.query(`SELECT credit_date, SUM(credit_amount) as amount FROM credit WHERE customer_supplier_code = ? AND credit_date IN (${dateStrings}) AND organization_id = ? GROUP BY credit_date`, [customer.customer_supplier_code, req.user.organization_id]);
+                    dataObj.daily_debits = dailyDebits;
+                    dataObj.daily_credits = dailyCredits;
+                } else {
+                    dataObj.daily_debits = [];
+                    dataObj.daily_credits = [];
+                }
 
                 const [odRes] = await db.query(`SELECT od_amount FROM supplier_od_old WHERE customer_supplier_code = ? AND tamil_month_name_en = ? AND year = ? AND organization_id = ?`, [customer.customer_supplier_code, month, year, req.user.organization_id]);
                 dataObj.opening_balance = odRes[0]?.od_amount || 0;
@@ -232,7 +237,7 @@ exports.getPrintDetails = async (req, res) => {
         res.json(responseData);
 
     } catch (error) {
-        console.error(error);
+        console.error("Print Details Error:", error);
         res.status(500).json({ error: error.message });
     }
 };

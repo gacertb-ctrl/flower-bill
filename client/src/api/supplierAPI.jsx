@@ -40,9 +40,9 @@ export const deleteSupplier = async (id) => {
     }
 };
 
-export const getLastSupplierTransactions = async (page, id) => {
+export const getLastSupplierTransactions = async (id) => {
     try {
-        const response = await apiClient.get(`/supplier/last_transaction/${id}`);
+        const response = await apiClient.get(`/supplier/last_transaction/${encodeURIComponent(id)}`);
         return response;
     } catch (error) {
         console.error('Error fetching last transaction:', error);
