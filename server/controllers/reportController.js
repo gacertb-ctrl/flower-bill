@@ -131,10 +131,19 @@ exports.getPrintDetails = async (req, res) => {
 
         let customers = [];
 
-        // 1. Fetch Customers
-        let customerSql = `SELECT * FROM customer_supplier cs 
-                           INNER JOIN ${report_type} en ON en.customer_supplier_code = cs.customer_supplier_code 
-                           WHERE cs.${pageType} = 'Y' AND cs.customer_supplier_is_active = 'Y' AND cs.organization_id = ?`;
+        // 1. Fetch Customers - FIXED SQL QUERY BELOW
+        // Instead of SELECT *, we select the code and wrap other needed fields in ANY_VALUE
+        let customerSql = `
+            SELECT 
+                cs.customer_supplier_code,
+                ANY_VALUE(cs.customer_supplier_id) as customer_supplier_id,
+                ANY_VALUE(cs.customer_supplier_name) as customer_supplier_name,
+                ANY_VALUE(cs.customer_supplier_mobile) as customer_supplier_mobile,
+                ANY_VALUE(cs.customer_supplier_address) as customer_supplier_address
+            FROM customer_supplier cs 
+            INNER JOIN ${report_type} en ON en.customer_supplier_code = cs.customer_supplier_code 
+            WHERE cs.${pageType} = 'Y' AND cs.customer_supplier_is_active = 'Y' AND cs.organization_id = ?`;
+        
         let customerParams = [];
 
         if (period_type === 'date') {
@@ -146,7 +155,7 @@ exports.getPrintDetails = async (req, res) => {
             const dateList = dates
                 .map(d => {
                     const dateObj = new Date(d.date);
-                    return `'${dateObj.toISOString().slice(0, 10)}'`; // yyyy-mm-dd
+                    return `'${dateObj.toISOString().slice(0, 10)}'`; 
                 })
                 .join(',');
             customerSql += ` AND en.${report_type}_date IN (${dateList}) `;
@@ -156,21 +165,20 @@ exports.getPrintDetails = async (req, res) => {
             customerSql += " AND cs.customer_supplier_code = ? ";
             customerParams.push(code);
         }
+        
         customerParams.unshift(req.user.organization_id);
         customerSql += " GROUP BY cs.customer_supplier_code";
-        console.log("Customer SQL:", customerSql, customerParams);
 
         const [customerRows] = await db.query(customerSql, customerParams);
         customers = customerRows;
 
-        // 2. Build Response Data based on type
+        // 2. Build Response Data
         const responseData = [];
 
         for (const customer of customers) {
             let dataObj = { ...customer };
 
             if (period_type === 'date') {
-                // Fetch Items
                 const [items] = await db.query(`
                     SELECT *, ${report_type}_quality as quality, ${report_type}_rate as rate, 
                     ${report_type}_total as total 
@@ -179,17 +187,14 @@ exports.getPrintDetails = async (req, res) => {
                     WHERE en.${report_type}_date = ? AND en.customer_supplier_code = ? AND en.organization_id = ?
                 `, [date, customer.customer_supplier_code, req.user.organization_id]);
 
-                // Calculate Totals (Opening Balance)
                 const [debitRes] = await db.query(`SELECT SUM(debit_amount) as amount FROM debit WHERE customer_supplier_code = ? AND debit_date < ? AND organization_id = ?`, [customer.customer_supplier_code, date, req.user.organization_id]);
                 const [creditRes] = await db.query(`SELECT SUM(credit_amount) as amount FROM credit WHERE customer_supplier_code = ? AND credit_date < ? AND organization_id = ?`, [customer.customer_supplier_code, date, req.user.organization_id]);
 
-                // Today's Payment/Receipt
                 let todayPaySql = report_type === 'purchase'
                     ? `SELECT debit_amount as amount FROM debit WHERE customer_supplier_code = ? AND debit_date = ? AND organization_id = ?`
                     : `SELECT credit_amount as amount FROM credit WHERE customer_supplier_code = ? AND credit_date = ? AND organization_id = ?`;
                 const [todayPayRes] = await db.query(todayPaySql, [customer.customer_supplier_code, date, req.user.organization_id]);
 
-                // Get Tamil Date for the specific date
                 const [tamilDateRes] = await db.query("SELECT * FROM tamil_calendar WHERE date = ?", [date]);
 
                 dataObj.items = items;
@@ -199,33 +204,18 @@ exports.getPrintDetails = async (req, res) => {
                 dataObj.tamil_date = tamilDateRes[0] || {};
 
             } else {
-                // Monthly Logic
                 const tamilDates = await getTamilMonthDates(month, year);
-                dataObj.date_ranges = tamilDates
-                dataObj.daily_totals = [];
+                dataObj.date_ranges = tamilDates;
+                
+                const dateStrings = tamilDates.map(d => `'${new Date(d.date).toISOString().slice(0, 10)}'`).join(',');
 
-                // Pre-fetch all daily totals for this customer in this month to avoid N+1 query spam
-                const dateList = tamilDates
-                    .map(d => {
-                        const dateObj = new Date(d.date);
-                        return `'${dateObj.toISOString().slice(0, 10)}'`; // yyyy-mm-dd
-                    })
-                    .join(',');
-                console.log("Date List for Daily Totals:", dateList);
-
-                const [dailyDebits] = await db.query(`SELECT debit_date, SUM(debit_amount) as amount FROM debit WHERE customer_supplier_code = ? AND debit_date IN (${dateList}) AND organization_id = ? GROUP BY debit_date`, [customer.customer_supplier_code, req.user.organization_id]);
-                const [dailyCredits] = await db.query(`SELECT credit_date, SUM(credit_amount) as amount FROM credit WHERE customer_supplier_code = ? AND credit_date IN (${dateList}) AND organization_id = ? GROUP BY credit_date`, [customer.customer_supplier_code, req.user.organization_id]);
+                const [dailyDebits] = await db.query(`SELECT debit_date, SUM(debit_amount) as amount FROM debit WHERE customer_supplier_code = ? AND debit_date IN (${dateStrings}) AND organization_id = ? GROUP BY debit_date`, [customer.customer_supplier_code, req.user.organization_id]);
+                const [dailyCredits] = await db.query(`SELECT credit_date, SUM(credit_amount) as amount FROM credit WHERE customer_supplier_code = ? AND credit_date IN (${dateStrings}) AND organization_id = ? GROUP BY credit_date`, [customer.customer_supplier_code, req.user.organization_id]);
 
                 dataObj.daily_debits = dailyDebits;
                 dataObj.daily_credits = dailyCredits;
 
-                // Old Balance Logic (Supplier OD)
-                // Assuming simple logic for migration if strict OD table isn't fully clear or migrated
-                // Logic: Check 'supplier_od_old' or calculate
-                let od_month = month; // Simplified for now, complex array search logic in PHP
-                let od_year = year;
-                // You might need to adjust this OD query based on exact table availability
-                const [odRes] = await db.query(`SELECT od_amount FROM supplier_od_old WHERE customer_supplier_code = ? AND tamil_month_name_en = ? AND year = ? AND organization_id = ?`, [customer.customer_supplier_code, od_month, od_year, req.user.organization_id]);
+                const [odRes] = await db.query(`SELECT od_amount FROM supplier_od_old WHERE customer_supplier_code = ? AND tamil_month_name_en = ? AND year = ? AND organization_id = ?`, [customer.customer_supplier_code, month, year, req.user.organization_id]);
                 dataObj.opening_balance = odRes[0]?.od_amount || 0;
             }
 
