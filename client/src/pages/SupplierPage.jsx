@@ -124,6 +124,7 @@ const SupplierPage = () => {
         transactions={transactions}
         show={transactions.length > 0}
         onHide={() => setTransactions([])}
+        reportType="purchase"
       />
     </div>
   );

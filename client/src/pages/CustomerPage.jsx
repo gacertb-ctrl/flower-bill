@@ -124,7 +124,7 @@ const CustomerPage = () => {
       // t={t} removed, Modal uses hook
       />
 
-      <LastTransactionModal show={transactions.length > 0} onHide={() => setTransactions([])} transactions={transactions} />
+      <LastTransactionModal show={transactions.length > 0} onHide={() => setTransactions([])} transactions={transactions} reportType="sales" />
     </div>
   );
 };

@@ -99,7 +99,7 @@ exports.deleteCreditEntry = async (req, res) => {
 exports.updateDebitEntry = async (req, res) => {
     const { id, amount } = req.body;
     try {
-        await db.query("UPDATE debit_entries SET amount = ? WHERE id = ?", [amount, id]);
+        await db.query("UPDATE debit SET debit_amount = ? WHERE debit_id = ?", [amount, id]);
         res.status(200).json({ message: "Debit entry updated successfully" });
     } catch (error) {
         console.error(error);
@@ -111,7 +111,7 @@ exports.updateDebitEntry = async (req, res) => {
 exports.updateCreditEntry = async (req, res) => {
     const { id, amount } = req.body;
     try {
-        await db.query("UPDATE credit_entries SET amount = ? WHERE id = ?", [amount, id]);
+        await db.query("UPDATE credit SET credit_amount = ? WHERE credit_id = ?", [amount, id]);
         res.status(200).json({ message: "Credit entry updated successfully" });
     } catch (error) {
         console.error(error);

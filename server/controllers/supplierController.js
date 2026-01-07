@@ -15,7 +15,9 @@ const addSupplier = async (req, res) => {
 const updateSupplier = async (req, res) => {
     try {
         const supplier = new Supplier(req.conn, req.conn1);
-        await supplier.updateSupplier(req.body);
+        var params = req.body;
+        params.organization_id = req.user.organization_id;
+        await supplier.updateSupplier(params);
         res.status(200).json({ data: "success", status: 200 });
     } catch (error) {
         console.error('Error updating supplier:', error);
@@ -63,7 +65,7 @@ const getAllSuppliers = async (req, res) => {
 
 const getLastSupplierTransactions = async (req, res) => {
     try {
-        const [rows] = await req.conn.execute("SELECT credit_amount as total, credit_date as date, 'purchase' as type, customer_supplier_code FROM credit WHERE customer_supplier_code = ? ORDER BY credit_id DESC LIMIT 5", [req.params.code]);
+        const [rows] = await req.conn.execute("SELECT credit_amount as total, credit_date as date, 'purchase' as type, customer_supplier_code FROM credit WHERE customer_supplier_code = ? AND organization_id = ? ORDER BY date DESC LIMIT 5", [req.params.code, req.user.organization_id]);
         res.json(rows);
     } catch (error) {
         console.error('Error fetching last supplier transactions:', error);

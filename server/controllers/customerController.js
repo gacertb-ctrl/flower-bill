@@ -16,7 +16,10 @@ const addCustomer = async (req, res) => {
 const updateCustomer = async (req, res) => {
     try {
         const customer = new Customer(req.conn, req.conn1);
-        await customer.updateCustomer(req.body);
+        var params = req.body;
+        params.organization_id = req.user.organization_id;
+
+        await customer.updateCustomer(params);
         // const tableHtml = await getTableData(req.conn, 'customer'); // Get data for 'customer' table
         res.json({ message: global.lang['customer updated'] });
     } catch (error) {
@@ -31,7 +34,7 @@ const getLastCustomerTransactions = async (req, res) => {
         if (!cus_sup_code) {
             return res.status(400).json({ error: 'cus_sup_code is required' });
         }
-        const [rows] = await req.conn.execute("SELECT debit_amount as total, debit_date as date, 'sales' as type, customer_supplier_code FROM debit WHERE customer_supplier_code = ? ORDER BY debit_id DESC LIMIT 5", [cus_sup_code]);
+        const [rows] = await req.conn.execute("SELECT debit_amount as total, debit_date as date, 'sales' as type, customer_supplier_code FROM debit WHERE customer_supplier_code = ? AND organization_id = ? ORDER BY date DESC LIMIT 5", [cus_sup_code, req.user.organization_id]);
         res.json(rows);
     } catch (error) {
         console.error('Error fetching last customer transactions:', error);

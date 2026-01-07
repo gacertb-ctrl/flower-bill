@@ -117,7 +117,7 @@ const ReportPage = () => {
                     <div className="row mb-3">
                         <div className="col-12 text-end">
                             <button className="btn btn-primary" onClick={() => handleDownload()}>
-                                <FontAwesomeIcon icon={faCloudDownload} />; {t('reports.downloadAll')}
+                                <FontAwesomeIcon icon={faCloudDownload} /> {t('reports.downloadAll')}
                             </button>
                         </div>
                     </div>
