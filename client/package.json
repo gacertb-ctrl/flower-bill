@@ -54,7 +54,8 @@
     "test": "react-app-rewired test",
     "eject": "react-scripts eject",
     "preinstall": "npm config set legacy-peer-deps true",
-    "build": "react-app-rewired build"
+    "build": "react-app-rewired build",
+    "prebuild": "node -v"
   },
 
   "eslintConfig": {
