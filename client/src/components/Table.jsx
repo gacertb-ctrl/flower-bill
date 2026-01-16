@@ -3,9 +3,12 @@ import { useTranslation } from 'react-i18next';
 import DataTableBase from './DataTableBase';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPen, faTrash, faClockRotateLeft } from '@fortawesome/free-solid-svg-icons';
+import { useAuth } from '../context/AuthContext';
 
 const Table = ({ page, data, setShowModal, setEditData, loadLastTransaction, deleteData }) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+
 
   const handleEdit = (row) => {
     setEditData(row);
@@ -33,7 +36,7 @@ const Table = ({ page, data, setShowModal, setEditData, loadLastTransaction, del
           >
             <FontAwesomeIcon icon={faClockRotateLeft} />
           </button>
-          {page !== 'product' && (
+          {page !== 'product' && user.role === 'admin' && (
             <button
               className="btn btn-danger btn-sm"
               title={t('confirm.delete')}

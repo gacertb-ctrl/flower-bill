@@ -9,7 +9,7 @@ function Footer() {
             <script src="/js/jquery-3.6.1.min.js"></script>
             <div className="container">
                 <span className="text-muted">
-                    &copy; {new Date().getFullYear()} {t('appTitle') || "MyApp"}. {t('footer.rights')}.
+                    {/* &copy; {new Date().getFullYear()} {t('appTitle') || "MyApp"}. {t('footer.rights')}. */}
                 </span>
             </div>
             <script src="/js/custom.js"></script>
