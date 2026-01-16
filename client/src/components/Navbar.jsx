@@ -5,12 +5,16 @@ import { useAuth } from '../context/AuthContext'; // Import your AuthContext
 
 function Navbar() {
   const [isCollapsed, setIsCollapsed] = useState(true);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { user, logout } = useAuth(); // Get user data
 
   const toggleNavbar = () => setIsCollapsed(!isCollapsed);
   const closeNavbar = () => setIsCollapsed(true);
 
-  const { user, logout } = useAuth(); // Get user data
+  const changeLanguage = (lang) => {
+    i18n.changeLanguage(lang);
+    localStorage.setItem('lang', lang);
+  };
 
   return (
     <nav className="navbar navbar-expand-lg bg-light fixed-top">
@@ -64,6 +68,24 @@ function Navbar() {
               </li>
             )}
           </ul>
+          {/* Language Switch */}
+          <div className="d-flex align-items-center me-3">
+            <button
+              className={`btn btn-sm me-1 ${i18n.language === 'en' ? 'btn-dark' : 'btn-outline-dark'
+                }`}
+              onClick={() => changeLanguage('en')}
+            >
+              EN
+            </button>
+
+            <button
+              className={`btn btn-sm ${i18n.language === 'ta' ? 'btn-dark' : 'btn-outline-dark'
+                }`}
+              onClick={() => changeLanguage('ta')}
+            >
+              TA
+            </button>
+          </div>
           <button className="btn btn-outline-dark" onClick={logout}>{t('logout')}</button>
         </div>
       </div>

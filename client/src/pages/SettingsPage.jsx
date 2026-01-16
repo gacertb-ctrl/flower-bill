@@ -36,11 +36,12 @@ const SettingsPage = () => {
     };
 
     return (
-        <div className="container mt-4">
+        <div className="container-fluid mt-5 pt-4">
             <h2>{t('settings')}</h2>
 
             <div className="row mt-4">
                 {/* ADMIN ONLY: Organization Settings */}
+                {/* 
                 {isAdmin && (
                     <div className="col-md-6 mb-4">
                         <div className="card">
@@ -68,11 +69,12 @@ const SettingsPage = () => {
                         </div>
                     </div>
                 )}
+                */}
 
                 {/* ALL USERS: Change Password */}
                 <div className="col-md-6">
                     <div className="card">
-                        <div className="card-header bg-secondary text-white">{t('change_password')}</div>
+                        <div className="card-header bg-secondary text-white">{t('update_password')}</div>
                         <div className="card-body">
                             <form onSubmit={handlePwdChange}>
                                 <div className="mb-3">

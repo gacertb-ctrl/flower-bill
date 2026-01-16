@@ -117,28 +117,32 @@ const ReportPrintView = () => {
 
                                         {/* Items Table */}
                                         <div className="col-12 p-0" style={{ height: type === 'sales' ? "358px" : "209px" }}>
-                                            <table className="table border-dark text-center mb-0" style={{ border: 'none' }}>
-                                                <thead>
+                                            <table className="table table-striped table-borderless text-center mb-0" style={{ height: type === 'sales' ? "358px" : "209px" }}>
+                                                <thead className="border-bottom border-top border-dark">
                                                     <tr>
-                                                        <th style={{ borderLeft: 0 }}>{t('no')}</th>
-                                                        <th>{t('items')}</th>
-                                                        <th>{t('quantity')}</th>
-                                                        <th>{t('price')}</th>
-                                                        <th style={{ borderRight: 0 }}>{t('total')}</th>
+                                                        <th className="py-0 border-end border-dark" style={{ borderLeft: 0 }}>{t('no')}</th>
+                                                        <th className="py-0 border-end border-dark">{t('items')}</th>
+                                                        <th className="py-0 border-end border-dark">{t('quantity')}</th>
+                                                        <th className="py-0 border-end border-dark">{t('price')}</th>
+                                                        <th className="py-0" style={{ borderRight: 0 }}>{t('total')}</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {items.map((item, idx) => (
                                                         <tr key={idx} className="fw-bold" style={{ fontSize: '12px', border: 0 }}>
-                                                            <td className="py-0" style={{ borderLeft: 0 }}>{idx + 1}</td>
-                                                            <td className="py-0">{item.product_name}</td>
-                                                            <td className="py-0">{item.quality}</td>
-                                                            <td className="py-0">{item.rate}</td>
+                                                            <td className="py-0 border-end border-dark" style={{ borderLeft: 0 }}>{idx + 1}</td>
+                                                            <td className="py-0 border-end border-dark">{item.product_name}</td>
+                                                            <td className="py-0 border-end border-dark">{item.quality}</td>
+                                                            <td className="py-0 border-end border-dark">{item.rate}</td>
                                                             <td className="py-0" style={{ borderRight: 0 }}>{item.total}</td>
                                                         </tr>
                                                     ))}
                                                     <tr style={{ border: 0, height: '100%' }}>
-                                                        <td style={{ borderLeft: 0 }}></td><td></td><td></td><td></td><td style={{ borderRight: 0 }}></td>
+                                                        <td className='py-0 border-end border-dark'></td>
+                                                        <td className='py-0 border-end border-dark'></td>
+                                                        <td className='py-0 border-end border-dark'></td>
+                                                        <td className='py-0 border-end border-dark'></td>
+                                                        <td style={{ borderRight: 0 }}></td>
                                                     </tr>
                                                 </tbody>
                                             </table>
@@ -151,24 +155,28 @@ const ReportPrintView = () => {
                                                 <div className="col-4 text-end">{totalAmount.toFixed(2)}</div>
                                             </div>
                                         </div>
+                                        {type === 'sales' ?
                                         <div className="col-12 fw-bold" style={{ fontSize: '12px' }}>
                                             <div className="row justify-content-end">
                                                 <div className="col-4 text-end">{t('prepaid')}</div>
                                                 <div className="col-4 text-end">{(parseFloat(customer.prev_debit || 0) - parseFloat(customer.prev_credit || 0)).toFixed(2)}</div>
                                             </div>
                                         </div>
+                                        : ''}
                                         <div className="col-12 fw-bold" style={{ fontSize: '12px' }}>
                                             <div className="row justify-content-end">
                                                 <div className="col-4 text-end">{type === 'sales' ? t('today credit') : t('today debit')}</div>
                                                 <div className="col-4 text-end">{parseFloat(customer.today_pay || 0).toFixed(2)}</div>
                                             </div>
                                         </div>
+                                        {type === 'sales' ?
                                         <div className="col-12 fw-bold mb-1" style={{ fontSize: '12px' }}>
                                             <div className="row justify-content-end">
                                                 <div className="col-4 text-end">{t('reports.totalOutstanding')}</div>
                                                 <div className="col-4 text-end">{outstanding.toFixed(2)}</div>
                                             </div>
                                         </div>
+                                        : ''}
                                     </div>
                                 </div>
                             );
@@ -218,12 +226,19 @@ const ReportPrintView = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="col-12"><div className="row"><div className="col-7">{t('patta no')} - {billNo}</div></div></div>
-                                            <div className="col-12"><div className="row"><div className="col-7">{customer.customer_supplier_name}</div><div className="col-5">{customer.customer_supplier_contact_no}</div></div></div>
-                                            <div className="col-12"><div className="row"><div className="col-12">{searchParams.get('month')} - {searchParams.get('year')}</div></div></div>
+                                            <div className="row">
+                                                <div className="col-6">
+                                                    <div className="row">{t('patta no')} - {billNo}</div>
+                                                    <div className="row">{customer.customer_supplier_name}</div>
+                                                    <div className="row">{customer.customer_supplier_contact_no}</div>
+                                                </div>
+                                                <div className="col-6">
+                                                    <div className="row"><div className="col-12">{customer.date_ranges[0]?.tamil_month_name_ta} - {searchParams.get('year')}</div></div>
+                                                </div>
+                                            </div>
 
                                             <div className="col-12 p-0">
-                                                <table className="table table-bordered border-dark text-center mb-0" style={{ borderLeft: 0, borderRight: 0 }}>
+                                                <table className="table table-bordered table-bordless border-dark text-center mb-0" style={{ borderLeft: 0, borderRight: 0 }}>
                                                     <thead>
                                                         <tr>
                                                             <th style={{ borderLeft: 0 }}>{t('date')}</th>
@@ -276,6 +291,20 @@ const ReportPrintView = () => {
                                                                 </tr>
                                                             </>
                                                         )}
+                                                        <tr>
+                                                            <td colSpan="2" className="text-start" style={{ borderLeft: 0 }}>{t('closing_balance')}</td>
+                                                            {((debitTotal + prevDebit) - creditTotal) >= 0 ?
+                                                                <td></td> :
+                                                                <td>{Math.abs((debitTotal + prevDebit) - creditTotal).toFixed(2)}</td>
+                                                            }
+                                                        </tr>
+                                                        <tr>
+                                                            <td colSpan="2" className="text-start" style={{ borderLeft: 0 }}>{t('overdraft')}</td>
+                                                            {((debitTotal + prevDebit) - creditTotal) < 0 ?
+                                                                <td></td> :
+                                                                <td style={{ borderRight: 0 }}>{Math.abs((debitTotal + prevDebit) - creditTotal).toFixed(2)}</td>
+                                                            }
+                                                        </tr>
                                                     </tbody>
                                                 </table>
                                             </div>

@@ -5,10 +5,12 @@ import SalesTable from '../components/entry/SalesTable.jsx';
 import EntryModal from '../components/entry/EntryModal.jsx';
 import { getAllPurchaseEntries, getAllSalesEntries, deletePurchaseEntry, deleteSalesEntry } from '../api/entryAPI';
 import EntryUpdateModal from '../components/entry/EntryUpdateModal.jsx';
+import { useAuth } from '../context/AuthContext';
 
 const EntryPage = () => {
   const { t } = useTranslation();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Modal State
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
@@ -39,7 +41,7 @@ const EntryPage = () => {
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      // Shortcut for Purchase (e.g., Alt + P)
+      /* // Shortcut for Purchase (e.g., Alt + P)
       if (event.altKey && event.key.toLowerCase() === 'p') {
         event.preventDefault();
         setShowPurchaseModal(true);
@@ -49,10 +51,10 @@ const EntryPage = () => {
       if (event.altKey && event.key.toLowerCase() === 's') {
         event.preventDefault();
         setShowSalesModal(true);
-      }
+      } */
 
       // Option 2: Function Keys (F9 for Purchase, F8 for Sales like Tally)
-      /* if (event.key === 'F9') {
+      if (event.key === 'F9') {
          event.preventDefault();
          setShowPurchaseModal(true);
       }
@@ -60,7 +62,7 @@ const EntryPage = () => {
          event.preventDefault();
          setShowSalesModal(true);
       } 
-      */
+
     };
 
     // Add event listener
@@ -129,6 +131,15 @@ const EntryPage = () => {
   // Close Handlers (to reset edit state)
   const closePurchaseModal = () => { setShowPurchaseModal(false); setEditItem(null); };
   const closeSalesModal = () => { setShowSalesModal(false); setEditItem(null); };
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      setIsAdmin(true);
+    } else {
+      setIsAdmin(false);
+    }
+  })
 
   return (
     <div className="container-fluid mt-5 pt-4">
@@ -137,7 +148,7 @@ const EntryPage = () => {
           {/* Date Picker */}
           <div className="row mb-3">
             <div className="col-md-3">
-              <input type="date" className="form-control" value={date} onChange={(e) => setDate(e.target.value)} />
+              <input type="date" className="form-control" value={date} onChange={(e) => setDate(e.target.value)} disabled={!isAdmin} />
             </div>
           </div>
 
@@ -147,7 +158,7 @@ const EntryPage = () => {
               <h3>{t('purchase')}</h3>
               <div className="mb-3">
                 <button className="btn btn-primary me-2" onClick={() => { setEditItem(null); setShowPurchaseModal(true); }}>
-                  {t('add purchase')} (Alt + P)
+                  {t('add purchase')} (F9)
                 </button>
               </div>
               <PurchaseTable
@@ -162,7 +173,7 @@ const EntryPage = () => {
               <h3>{t('sales')}</h3>
               <div className="mb-3">
                 <button className="btn btn-primary me-2" onClick={() => { setEditItem(null); setShowSalesModal(true); }}>
-                  {t('add sales')} (Alt + S)
+                  {t('add sales')} (F8)
                 </button>
               </div>
               <SalesTable

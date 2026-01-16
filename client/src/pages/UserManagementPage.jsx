@@ -36,7 +36,7 @@ const UserManagementPage = () => {
     };
 
     return (
-        <div className="container mt-4">
+        <div className="container-fluid mt-5 pt-4">
             <h2>{t('user_management')}</h2>
 
             <div className="row">
