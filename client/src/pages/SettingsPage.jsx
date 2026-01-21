@@ -28,11 +28,11 @@ const SettingsPage = () => {
 
     const handlePwdChange = async (e) => {
         e.preventDefault();
-        try {
-            await changePassword(pwdData);
+        try {            
+            const response = await changePassword(pwdData);
             alert(t('password_changed'));
             setPwdData({ currentPassword: '', newPassword: '' });
-        } catch (error) { alert('Failed to change password'); }
+        } catch (error) { alert(error.response?.data?.error || 'Failed to change password'); }
     };
 
     return (

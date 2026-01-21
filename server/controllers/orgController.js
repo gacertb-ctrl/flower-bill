@@ -24,7 +24,7 @@ exports.updateOrgDetails = async (req, res) => {
 exports.changePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     try {
-        const [users] = await req.conn.execute("SELECT * FROM users WHERE id = ?", [req.user.id]);
+        const [users] = await req.conn.execute("SELECT * FROM users WHERE user_id = ?", [req.user.id]);
         const user = users[0];
 
         const validPass = await bcrypt.compare(currentPassword, user.password);
@@ -33,7 +33,7 @@ exports.changePassword = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPass = await bcrypt.hash(newPassword, salt);
 
-        await req.conn.execute("UPDATE users SET password = ? WHERE id = ?", [hashedPass, req.user.id]);
+        await req.conn.execute("UPDATE users SET password = ? WHERE user_id = ?", [hashedPass, req.user.id]);
         res.json({ message: "Password changed successfully" });
     } catch (err) { res.status(500).json({ error: err.message }); }
 };

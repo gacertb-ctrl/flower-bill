@@ -74,11 +74,11 @@ const UserManagementPage = () => {
                         </thead>
                         <tbody>
                             {staffList.map(user => (
-                                <tr key={user.id}>
+                                <tr key={user.user_id}>
                                     <td>{user.username}</td>
                                     <td><span className="badge bg-info">{user.role}</span></td>
                                     <td>
-                                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(user.id)}>
+                                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(user.user_id)}>
                                             <FontAwesomeIcon icon={faTrash} />
                                         </button>
                                     </td>
