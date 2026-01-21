@@ -4,7 +4,10 @@ const { getTableData } = require('../utils/tableGenerator'); // Utility for tabl
 const addCustomer = async (req, res) => {
     try {
         const customer = new Customer(req.conn, req.conn1);
-        await customer.addCustomer(req.body);
+        var params = req.body;
+        params.organization_id = req.user.organization_id;
+
+        await customer.addCustomer(params);
         // const tableHtml = await getTableData(req.conn, 'customer'); // Get data for 'customer' table
         res.status(200).json({ data: "success", status: 200 });
     } catch (error) {

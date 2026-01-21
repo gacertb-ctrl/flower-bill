@@ -4,7 +4,10 @@ const { getTableData } = require('../utils/tableGenerator'); // Utility for tabl
 const addSupplier = async (req, res) => {
     try {
         const supplier = new Supplier(req.conn, req.conn1);
-        await supplier.addSupplier(req.body);
+        var params = req.body;
+        params.organization_id = req.user.organization_id;
+
+        await supplier.addSupplier(params);
         res.status(200).json({ data: "success", status: 200 });
     } catch (error) {
         console.error('Error adding supplier:', error);
