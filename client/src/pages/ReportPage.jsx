@@ -137,25 +137,27 @@ const ReportPage = () => {
                         </thead>
                         <tbody>
                             {tableData.map((row, index) => {
-                                let displayAmt = "";
-                                if (reportType === 'purchase') {
-                                    displayAmt = `${row.credit_amount} / ${row.debit_amount}`;
-                                } else {
-                                    displayAmt = `${row.debit_amount} / ${row.credit_amount}`;
-                                }
-
-                                return (
-                                    <tr key={index}>
-                                        <td>{index + 1}</td>
-                                        <td>{row.customer_supplier_name}</td>
-                                        <td>{displayAmt}</td>
-                                        <td>
-                                            <button className="btn btn-primary btn-sm" onClick={() => handleDownload(row.customer_supplier_code)}>
-                                                <FontAwesomeIcon icon={faCloudDownload} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                );
+                                {if (parseFloat(row.credit_amount) > 0 || parseFloat(row.debit_amount) > 0) {
+                                        let displayAmt = "";
+                                        if (reportType === 'purchase') {
+                                            displayAmt = `${row.credit_amount} / ${row.debit_amount}`;
+                                        } else {
+                                            displayAmt = `${row.debit_amount} / ${row.credit_amount}`;
+                                        }
+        
+                                        return (
+                                            <tr key={index}>
+                                                <td>{index + 1}</td>
+                                                <td>{row.customer_supplier_name}</td>
+                                                <td>{displayAmt}</td>
+                                                <td>
+                                                    <button className="btn btn-primary btn-sm" onClick={() => handleDownload(row.customer_supplier_code)}>
+                                                        <FontAwesomeIcon icon={faCloudDownload} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );                                    
+                                }}
                             })}
                         </tbody>
                         <tfoot>

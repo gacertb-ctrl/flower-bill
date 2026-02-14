@@ -1,12 +1,14 @@
-import React, { useState, useContext } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../context/AuthContext'; // Import your AuthContext
+import { useAuth } from '../context/AuthContext';
+import '../styles/Navbar.css'; // Import custom styles for the navbar
 
 function Navbar() {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const { t, i18n } = useTranslation();
-  const { user, logout } = useAuth(); // Get user data
+  const { user, logout } = useAuth();
+  const location = useLocation(); // To highlight the active link
 
   const toggleNavbar = () => setIsCollapsed(!isCollapsed);
   const closeNavbar = () => setIsCollapsed(true);
@@ -16,85 +18,83 @@ function Navbar() {
     localStorage.setItem('lang', lang);
   };
 
+  // Helper to check if a link is active
+  const isActive = (path) => location.pathname === path ? 'active-link' : '';
+
   return (
-    <nav className="navbar navbar-expand-lg bg-light fixed-top">
-      <div className="container-fluid">
-        <Link className="navbar-brand" to="/" onClick={closeNavbar}>
-          {t('appTitle') || "MyApp"}
+    <nav className="navbar navbar-expand-lg sticky-top shadow-sm custom-navbar">
+      <div className="container">
+        <Link className="navbar-brand fw-bold text-primary" to="/" onClick={closeNavbar}>
+          <i className="bi bi-box-seam me-2"></i>{t('appTitle') || "InventoryPro"}
         </Link>
 
-        {/* Show toggler only if logged in */}
         {user && (
           <button
-            className="navbar-toggler"
+            className="navbar-toggler border-0"
             type="button"
             onClick={toggleNavbar}
-            aria-controls="navbarNav"
             aria-expanded={!isCollapsed}
-            aria-label="Toggle navigation"
           >
             <span className="navbar-toggler-icon"></span>
           </button>
         )}
 
-        {/* Menu – ONLY IF USER LOGGED IN */}
         {user && (
-          <div className={`collapse navbar-collapse ${!isCollapsed ? 'show' : ''}`} id="navbarNav">
-            <ul className="navbar-nav ms-auto">
-              <li className="nav-item">
-                <Link className="nav-link" to="/customers" onClick={closeNavbar}>{t('customer')}</Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link" to="/suppliers" onClick={closeNavbar}>{t('supplier')}</Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link" to="/products" onClick={closeNavbar}>{t('product')}</Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link" to="/entries" onClick={closeNavbar}>{t('entry')}</Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link" to="/report" onClick={closeNavbar}>{t('report')}</Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link" to="/stocks" onClick={closeNavbar}>{t('stocks')}</Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link" to="/debit-credit" onClick={closeNavbar}>{t('debitCredit')}</Link>
-              </li>
-              {/* New Settings Link */}
-              <li className="nav-item">
-                <Link className="nav-link" to="/settings">{t('settings')}</Link>
-              </li>
+          <div className={`collapse navbar-collapse ${!isCollapsed ? 'show' : ''}`}>
+            <ul className="navbar-nav mx-auto mb-2 mb-lg-0">
+              {[
+                { path: '/customers', label: 'customer' },
+                { path: '/suppliers', label: 'supplier' },
+                { path: '/products', label: 'product' },
+                { path: '/entries', label: 'entry' },
+                { path: '/report', label: 'report' },
+                { path: '/stocks', label: 'stocks' },
+                { path: '/debit-credit', label: 'debitCredit' },
+                { path: '/settings', label: 'settings' },
+              ].map((item) => (
+                <li className="nav-item" key={item.path}>
+                  <Link
+                    className={`nav-link px-1 mx-1 hover-underline ${isActive(item.path)}`}
+                    to={item.path}
+                    onClick={closeNavbar}
+                  >
+                    {t(item.label)}
+                  </Link>
+                </li>
+              ))}
 
-              {/* Admin Only Link */}
               {user.role === 'admin' && (
                 <li className="nav-item">
-                  <Link className="nav-link" to="/users">{t('manage_users')}</Link>
+                  <Link className={`nav-link px-3 mx-1 admin-link ${isActive('/users')}`} to="/users" onClick={closeNavbar}>
+                    {t('manage_users')}
+                  </Link>
                 </li>
               )}
             </ul>
-            {/* Language Switch */}
-            <div className="d-flex align-items-center me-3">
-              <button
-                className={`btn btn-sm me-1 ${i18n.language === 'en' ? 'btn-dark' : 'btn-outline-dark'
-                  }`}
-                onClick={() => changeLanguage('en')}
-              >
-                EN
-              </button>
 
-              <button
-                className={`btn btn-sm ${i18n.language === 'ta' ? 'btn-dark' : 'btn-outline-dark'
-                  }`}
-                onClick={() => changeLanguage('ta')}
-              >
-                TA
+            <div className="d-flex align-items-center gap-2">
+              {/* Language Toggle Group */}
+              <div className="btn-group btn-group-sm me-2" role="group">
+                <button
+                  className={`btn ${i18n.language === 'en' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                  onClick={() => changeLanguage('en')}
+                >
+                  EN
+                </button>
+                <button
+                  className={`btn ${i18n.language === 'ta' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                  onClick={() => changeLanguage('ta')}
+                >
+                  TA
+                </button>
+              </div>
+
+              <button className="btn btn-danger btn-sm px-3 rounded-pill" onClick={logout}>
+                {t('logout')}
               </button>
             </div>
-            <button className="btn btn-outline-dark" onClick={logout}>{t('logout')}</button>
           </div>
-          )}
+        )}
       </div>
     </nav>
   );

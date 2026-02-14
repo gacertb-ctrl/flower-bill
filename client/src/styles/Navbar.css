@@ -1,0 +1,52 @@
+/* Navbar Styling */
+.custom-navbar {
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    /* Modern frosted glass effect */
+    padding: 0.8rem 1rem;
+}
+
+/* Hover & Active Links */
+.nav-link {
+    font-weight: 500;
+    color: #555 !important;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.nav-link:hover {
+    color: #0d6efd !important;
+    transform: translateY(-2px);
+}
+
+/* Active bottom line animation */
+.hover-underline::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: 0;
+    left: 50%;
+    background-color: #0d6efd;
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.hover-underline:hover::after,
+.active-link::after {
+    width: 70%;
+}
+
+.active-link {
+    color: #0d6efd !important;
+}
+
+/* Special styling for Admin link */
+.admin-link {
+    color: #dc3545 !important;
+}
+
+.admin-link:hover {
+    background-color: #fff5f5;
+    border-radius: 8px;
+}
