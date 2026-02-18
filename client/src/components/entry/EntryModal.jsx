@@ -6,8 +6,11 @@ import { fetchCustomers } from '../../api/customerAPI';
 import { fetchProducts } from '../../api/productAPI';
 import { createPurchaseEntryBulk, createSalesEntryBulk } from '../../api/entryAPI'; // Updated Import
 import { SearchableSelect } from './SearchableSelect';
+import { faPen, faTrash, faClockRotateLeft, faMoon } from '@fortawesome/free-solid-svg-icons';
 
-const EntryModal = ({ type, show, onHide, onSubmit, date }) => {
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+
+const EntryModal = ({ type, show, onHide, onSubmit, date, tamilDateInfo }) => {
   const { t } = useTranslation();
 
   // 1. Header Data (Customer & Date)
@@ -187,99 +190,106 @@ const EntryModal = ({ type, show, onHide, onSubmit, date }) => {
   }));
 
   return (
-    <Modal show={show} onHide={onHide} size="xl" centered>
-      <Modal.Header closeButton>
-        <Modal.Title>{t(`add ${type}`)} (Multiple)</Modal.Title>
+    <Modal show={show} onHide={onHide} size="xl" centered contentClassName="rounded-4 border-0">
+      <Modal.Header closeButton className="border-0 pb-0">
+        <Modal.Title className="fw-bold text-dark ps-2">
+          {type === 'purchase' ? '📦 ' : '📈 '} {t(`New ${type} Entry`)}
+        </Modal.Title>
       </Modal.Header>
-      <Modal.Body>
-        {/* Header Section */}
-        <Row className="mb-3">
-          <Col md={6}>
-            <Form.Group>
-              <Form.Label>{type === 'purchase' ? t('supplier') : t('customer')}</Form.Label>
-              <SearchableSelect
-                name="customer_supplier_code"
-                value={headerData.customer_supplier_code}
-                options={mappedListOptions}
-                onChange={handleHeaderChange}
-                placeholder={type === 'purchase' ? t('select.supplier') : t('select.customer')}
-                autoFocus={true}
-              />
-            </Form.Group>
-          </Col>
-          <Col md={6}>
-            <Form.Label>Date</Form.Label>
-            <Form.Control type="text" value={headerData.date} disabled />
-          </Col>
-        </Row>
-
-        {/* Dynamic Rows Section */}
-        <Table bordered hover size="sm">
-          <thead>
-            <tr>
-              <th width="35%">{t('product')}</th>
-              <th width="15%">{t('quantity')}</th>
-              <th width="15%">{t('unit')}</th>
-              <th width="15%">{t('price')}</th>
-              <th width="15%">{t('total')}</th>
-              <th width="5%">X</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, index) => (
-              <tr key={index}>
-                <td>
-                  <SearchableSelect
-                    value={row.product_code}
-                    options={mappedProducts}
-                    onChange={(e) => handleRowChange(index, 'product_code', e.target.value)}
-                    placeholder={t('select.product')}
-                  />
-                </td>
-                <td>
-                  <Form.Control
-                    type="number"
-                    value={row.quality}
-                    onChange={(e) => handleRowChange(index, 'quality', e.target.value)}
-                  />
-                </td>
-                <td>
-                  <Form.Select
-                    value={row.unit}
-                    onChange={(e) => handleRowChange(index, 'unit', e.target.value)}
-                  >
-                    <option value="kg">{t('kg')}</option>
-                    <option value="g">{t('g')}</option>
-                    <option value="படி">{t('padi')}</option>
-                    <option value="pie">{t('pieces')}</option>
-                  </Form.Select>
-                </td>
-                <td>
-                  <Form.Control
-                    type="number"
-                    value={row.price}
-                    onChange={(e) => handleRowChange(index, 'price', e.target.value)}
-                  />
-                </td>
-                <td>
-                  <Form.Control type="text" value={row.price_total} readOnly />
-                </td>
-                <td>
-                  <Button variant="danger" size="sm" onClick={() => removeRow(index)} disabled={rows.length === 1}>
-                    <i className="fa fa-trash"></i>
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-
-        <Button variant="secondary" size="sm" onClick={addRow}>+ {t('Add Row')}</Button>
-
-        <div className="d-flex justify-content-end mt-3">
-          <h4>{t('Grand Total')}: {grandTotal}</h4>
+      <Modal.Body className="p-4">
+        <div className="bg-light p-3 rounded-4 mb-4 border-0">
+          <Row className="align-items-center">
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label className="small text-muted fw-bold">{type === 'purchase' ? t('supplier.name') : t('customer.name')}</Form.Label>
+                <SearchableSelect
+                  name="customer_supplier_code"
+                  value={headerData.customer_supplier_code}
+                  options={mappedListOptions}
+                  onChange={handleHeaderChange}
+                  placeholder={t('searchPlaceholder')}
+                  autoFocus={true}
+                />
+              </Form.Group>
+            </Col>
+            {/* Tamil Date Integration */}
+            <Col md={3}>
+              <div className="p-2 rounded-3 bg-white border d-flex align-items-center mt-3 mt-md-0">
+                <div className="bg-warning-soft p-2 rounded-2 me-3" style={{ backgroundColor: '#fff9db' }}>
+                  <FontAwesomeIcon icon={faMoon} className="text-warning" />
+                </div>
+                <div>
+                  <span className="d-block fw-bold text-dark" style={{ fontSize: '0.9rem' }}>
+                    {tamilDateInfo.tamil_month_name_ta || '---'} {tamilDateInfo.tamil_date}
+                  </span>
+                  <small className="text-muted" style={{ fontSize: '0.7rem' }}>தமிழ் தேதி (Tamil Date)</small>
+                </div>
+              </div>
+            </Col>
+            <Col md={3}>
+              <Form.Group>
+                <Form.Label className="small text-muted fw-bold">{t('transaction')} {t('date')}</Form.Label>
+                <Form.Control type="text" value={headerData.date} disabled className="bg-white border-0 fw-bold text-primary" />
+              </Form.Group>
+            </Col>
+          </Row>
         </div>
 
+        <div className="rounded-3 shadow-sm bg-white">
+          <Table hover className="align-middle mb-0">
+            <thead className="bg-dark text-white">
+              <tr>
+                <th className="py-3 ps-3">{t('product')}</th>
+                <th className="py-3 text-center">{t('quantity')}</th>
+                <th className="py-3 text-center">{t('unit')}</th>
+                <th className="py-3 text-end">{t('price')}</th>
+                <th className="py-3 text-end pe-3">{t('total')}</th>
+                <th className="py-3 text-center"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr key={index}>
+                  <td className="ps-3" style={{ minWidth: '300px' }}>
+                    <SearchableSelect
+                      value={row.product_code}
+                      options={mappedProducts}
+                      onChange={(e) => handleRowChange(index, 'product_code', e.target.value)}
+                    />
+                  </td>
+                  <td width="100px">
+                    <Form.Control type="number" className="text-center" value={row.quality} onChange={(e) => handleRowChange(index, 'quality', e.target.value)} />
+                  </td>
+                  <td width="170px">
+                    <Form.Select value={row.unit} onChange={(e) => handleRowChange(index, 'unit', e.target.value)}>
+                      <option value="kg">{t('kg')}</option>
+                      <option value="g">{t('g')}</option>
+                      <option value="படி">{t('padi')}</option>
+                      <option value="pie">{t('pieces')}</option>
+                    </Form.Select>
+                  </td>
+                  <td width="120px">
+                    <Form.Control type="number" className="text-end" value={row.price} onChange={(e) => handleRowChange(index, 'price', e.target.value)} />
+                  </td>
+                  <td className="text-end fw-bold text-dark pe-3">
+                    ₹{row.price_total}
+                  </td>
+                  <td className="text-center">
+                    <button className="btn btn-link text-danger" onClick={() => removeRow(index)}><FontAwesomeIcon icon={faTrash} /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </div>
+
+        <div className="d-flex justify-content-between align-items-center mt-3">
+          <button className="btn btn-outline-primary btn-sm rounded-pill px-3" onClick={addRow}>+ {t('Add Row')}</button>
+          <div className="text-end">
+            <span className="text-muted small d-block">{t('Total Amount')}</span>
+            <h3 className="fw-black text-primary mb-0">₹{grandTotal}</h3>
+          </div>
+        </div>
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onHide}>{t('close')}</Button>

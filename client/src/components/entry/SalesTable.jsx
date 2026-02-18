@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import DataTableBase from '../DataTableBase';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPen, faTrash, faClockRotateLeft } from '@fortawesome/free-solid-svg-icons';
+import { faPen, faTrash, faRotateLeft } from '@fortawesome/free-solid-svg-icons';
 import { updateSalesEntry } from '../../api/entryAPI';
 
 const SalesTable = ({ data, handleDelete, handleEdit }) => {
@@ -40,13 +40,11 @@ const SalesTable = ({ data, handleDelete, handleEdit }) => {
       name: t('action'),
       cell: (row) => (
         <div className="d-flex gap-2">
-          {/* Edit Button */}
-          <button className="btn btn-primary btn-sm" onClick={() => handleEdit(row, 'sales')}>
-            <FontAwesomeIcon icon={faPen} />
+          <button className="btn btn-soft-primary rounded-circle border-0" onClick={() => handleEdit(row)}>
+            <FontAwesomeIcon icon={faPen} size="xs" />
           </button>
-          {/* Delete Button */}
-          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.sales_id)}>
-            <FontAwesomeIcon icon={faTrash} />
+          <button className="btn btn-soft-danger rounded-circle border-0" onClick={() => handleDelete(row.sales_id)}>
+            <FontAwesomeIcon icon={faTrash} size="xs" />
           </button>
         </div>
       ),
@@ -54,42 +52,32 @@ const SalesTable = ({ data, handleDelete, handleEdit }) => {
     },
   ];
 
+  const clearFilters = () => {
+    setSelectedCustomer(''); // or setSelectedSupplier('') for PurchaseTable
+    setSelectedProduct('');
+  };
+
   return (
     <>
       {/* Filters Section */}
-      <div className="row mb-3">
-        <div className="col-md-4">
-          <select
-            className="form-select"
-            value={selectedCustomer}
-            onChange={(e) => setSelectedCustomer(e.target.value)}
-          >
-            <option value="">{t('select.customer') || "All Customers"}</option>
-            {customerOptions.map((name, i) => (
-              <option key={i} value={name}>{name}</option>
+      <div className="filter-bar bg-light p-3 rounded-4 mb-3 d-flex gap-2">
+        <div className="flex-grow-1">
+          <select className="form-select border-0 shadow-xs" value={selectedCustomer} onChange={(e) => setSelectedCustomer(e.target.value)}>
+            <option value="">{t('all')} {t('customer')}</option>
+            {customerOptions.map(name => (
+              <option key={name} value={name}>{name}</option>
             ))}
           </select>
         </div>
-        <div className="col-md-4">
-          <select
-            className="form-select"
-            value={selectedProduct}
-            onChange={(e) => setSelectedProduct(e.target.value)}
-          >
-            <option value="">{t('select.product') || "All Products"}</option>
-            {productOptions.map((name, i) => (
-              <option key={i} value={name}>{name}</option>
+        <div className="flex-grow-1">
+          <select className="form-select border-0 shadow-xs" value={selectedProduct} onChange={(e) => setSelectedProduct(e.target.value)}>
+            <option value="">{t('all')} {t('product')}</option>
+            {productOptions.map(name => (
+              <option key={name} value={name}>{name}</option>
             ))}
           </select>
         </div>
-        <div className="col-md-4 d-flex align-items-end">
-          <button
-            className="btn btn-secondary w-100"
-            onClick={() => { setSelectedCustomer(''); setSelectedProduct(''); }}
-          >
-            {t('clear') || "Clear Filters"}
-          </button>
-        </div>
+        <button className="btn btn-white shadow-xs" onClick={clearFilters}><FontAwesomeIcon icon={faRotateLeft} /></button>
       </div>
 
       {/* Table Section */}

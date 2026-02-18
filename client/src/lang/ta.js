@@ -152,6 +152,10 @@ const lang = {
     transaction: 'பரிவர்த்தனை',
     'transaction history': 'பரிவர்த்தனை வரலாறு',
     Payment: 'பற்று',
+    all: 'அனைத்து',
+    ledger: 'பதிவுகள்',
+    "Daily Entries": "நாள் பதிவுகள்",
+    "Manage your daily stock movement": "நாள் பதிவுகளை நிர்வகிக்கவும்",
 };
 
 export default lang;

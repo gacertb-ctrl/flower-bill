@@ -162,3 +162,7 @@ export const createSalesEntryBulk = async (entryData) => {
   }
 };
 
+export const fetchTamilDate = async (date) => {
+  const response = await apiClient.get(`/report/tamil-date?date=${date}`);
+  return response.data;
+};

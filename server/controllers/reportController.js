@@ -241,3 +241,21 @@ exports.getPrintDetails = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+// controller.js
+exports.getTamilDateByCalendarDate = async (req, res) => {
+    try {
+        const { date } = req.query; // Expecting YYYY-MM-DD
+        const sql = "SELECT tamil_date, tamil_month_name_ta FROM tamil_calendar WHERE date = ? LIMIT 1";
+        const [rows] = await req.conn.execute(sql, [date]);
+
+        if (rows.length > 0) {
+            res.json(rows[0]);
+        } else {
+            res.status(404).json({ message: "Date not found" });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Internal Server Error");
+    }
+};

@@ -152,6 +152,10 @@ const lang = {
   Credit: 'Credit',
   transaction: 'Transaction',
   'transaction history': 'Transaction History',
+  all: 'All',
+  ledger: 'Ledger',
+  "Daily Entries": "Daily Entries",
+  "Manage your daily stock movement": "Manage your daily stock movement",
 };
 
 export default lang;

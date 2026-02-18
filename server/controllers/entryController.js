@@ -224,15 +224,28 @@ exports.getAllSalesEntries = async (req, res) => {
 // Update Purchase Entry
 exports.updatePurchaseEntry = async (req, res) => {
     const { id, quantity, price } = req.body;
+    const orgId = req.user.organization_id;
 
     try {
-        // 1. Get the old entry to calculate stock difference
-        const [oldEntry] = await req.conn.execute("SELECT purchase_quality, product_code FROM purchase WHERE purchase_id = ?", [id]);
+        // 1. Get the old entry to calculate stock AND credit difference
+        const [oldEntry] = await req.conn.execute(
+            "SELECT purchase_quality, purchase_total, product_code, customer_supplier_code, purchase_date FROM purchase WHERE purchase_id = ?",
+            [id]
+        );
+
         if (oldEntry.length === 0) return res.status(404).json({ error: "Entry not found" });
 
-        const oldQuantity = oldEntry[0].purchase_quality;
-        const newTotal = quantity * price;
+        const {
+            purchase_quality: oldQuantity,
+            purchase_total: oldTotal,
+            product_code,
+            customer_supplier_code,
+            purchase_date
+        } = oldEntry[0];
+
+        const newTotal = Math.round(quantity * price);
         const quantityDiff = quantity - oldQuantity;
+        const priceDiff = newTotal - oldTotal; // Difference to update credit table
 
         // 2. Update the Purchase Entry
         await req.conn.execute(
@@ -240,33 +253,65 @@ exports.updatePurchaseEntry = async (req, res) => {
             [quantity, price, newTotal, id]
         );
 
-        // 3. Update Product Stock (Purchase increases stock, so add the difference)
-        // If quantity increased (e.g. 10 to 12), diff is +2. Add 2 to stock.
-        // If quantity decreased (e.g. 10 to 8), diff is -2. Subtract 2 from stock.
+        // 3. Update Product Stock
         await req.conn.execute(
             "UPDATE product SET product_quality = product_quality + ? WHERE product_code = ?",
-            [quantityDiff, oldEntry[0].product_code]
+            [quantityDiff, product_code]
         );
 
-        res.status(200).json({ message: "Purchase entry updated successfully" });
+        // 4. Update Credit Table (Supplier Balance)
+        // Find the credit entry for this supplier on this specific date
+        const [creditRows] = await req.conn.execute(
+            "SELECT credit_id, credit_amount FROM credit WHERE customer_supplier_code = ? AND credit_date = ? AND organization_id = ?",
+            [customer_supplier_code, purchase_date, orgId]
+        );
+
+        if (creditRows.length > 0) {
+            // Apply the difference (could be positive or negative)
+            await req.conn.execute(
+                "UPDATE credit SET credit_amount = credit_amount + ? WHERE credit_id = ?",
+                [priceDiff, creditRows[0].credit_id]
+            );
+        } else {
+            // This case handles if a credit record was somehow missing
+            await req.conn.execute(
+                "INSERT INTO credit(customer_supplier_code, credit_amount, credit_date, organization_id) VALUES (?, ?, ?, ?)",
+                [customer_supplier_code, newTotal, purchase_date, orgId]
+            );
+        }
+
+        res.status(200).json({ message: "Purchase and Credit updated successfully" });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Failed to update purchase entry" });
+        console.error('Error updating purchase entry:', error);
+        res.status(500).json({ error: "Failed to update entry" });
     }
 };
 
 // Update Sales Entry
 exports.updateSalesEntry = async (req, res) => {
-    const { id, quantity, price, product_code } = req.body;
+    const { id, quantity, price } = req.body;
+    const orgId = req.user.organization_id;
 
     try {
-        // 1. Get the old entry
-        const [oldEntry] = await req.conn.execute("SELECT sales_quality, product_code FROM sales WHERE sales_id = ?", [id]);
+        // 1. Get the old entry to calculate stock AND debit difference
+        const [oldEntry] = await req.conn.execute(
+            "SELECT sales_quality, sales_total, product_code, customer_supplier_code, sales_date FROM sales WHERE sales_id = ?",
+            [id]
+        );
+
         if (oldEntry.length === 0) return res.status(404).json({ error: "Entry not found" });
 
-        const oldQuantity = oldEntry[0].sales_quality;
-        const newTotal = quantity * price;
+        const {
+            sales_quality: oldQuantity,
+            sales_total: oldTotal,
+            product_code,
+            customer_supplier_code,
+            sales_date
+        } = oldEntry[0];
+
+        const newTotal = Math.round(quantity * price);
         const quantityDiff = quantity - oldQuantity;
+        const priceDiff = newTotal - oldTotal; // Difference to update debit table
 
         // 2. Update the Sales Entry
         await req.conn.execute(
@@ -274,16 +319,36 @@ exports.updateSalesEntry = async (req, res) => {
             [quantity, price, newTotal, id]
         );
 
-        // 3. Update Product Stock (Sales decreases stock, so subtract the difference)
-        // If quantity increased (e.g. 5 to 7), diff is +2. We sold MORE, so stock must go DOWN (-2).
+        // 3. Update Product Stock (Sales decrease stock, so subtract the diff)
+        // If diff is +2 (sold more), stock goes DOWN by 2.
         await req.conn.execute(
             "UPDATE product SET product_quality = product_quality - ? WHERE product_code = ?",
-            [quantityDiff, oldEntry[0].product_code]
+            [quantityDiff, product_code]
         );
 
-        res.status(200).json({ message: "Sales entry updated successfully" });
+        // 4. Update Debit Table (Customer Balance)
+        const [debitRows] = await req.conn.execute(
+            "SELECT debit_id, debit_amount FROM debit WHERE customer_supplier_code = ? AND debit_date = ? AND organization_id = ?",
+            [customer_supplier_code, sales_date, orgId]
+        );
+
+        if (debitRows.length > 0) {
+            // Apply the difference to the customer's total for that day
+            await req.conn.execute(
+                "UPDATE debit SET debit_amount = debit_amount + ? WHERE debit_id = ?",
+                [priceDiff, debitRows[0].debit_id]
+            );
+        } else {
+            // Fallback: Create debit entry if missing
+            await req.conn.execute(
+                "INSERT INTO debit(customer_supplier_code, debit_amount, debit_date, organization_id) VALUES (?, ?, ?, ?)",
+                [customer_supplier_code, newTotal, sales_date, orgId]
+            );
+        }
+
+        res.status(200).json({ message: "Sales and Debit updated successfully" });
     } catch (error) {
-        console.error(error);
+        console.error('Error updating sales entry:', error);
         res.status(500).json({ error: "Failed to update sales entry" });
     }
 };

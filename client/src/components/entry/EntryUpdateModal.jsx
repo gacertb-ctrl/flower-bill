@@ -29,6 +29,7 @@ const EntryUpdateModal = ({ show, onHide, type, editData, onSuccess }) => {
   };
 
   const handleSubmit = async () => {
+    
     const payload = {
       id: formData.id,
       quantity: formData.quantity,
@@ -49,7 +50,7 @@ const EntryUpdateModal = ({ show, onHide, type, editData, onSuccess }) => {
   return (
     <Modal show={show} onHide={onHide} centered>
       <Modal.Header closeButton>
-        <Modal.Title>{t('update entry')}</Modal.Title>
+        <Modal.Title>{t('update')} {type === 'purchase' ? t('purchase') : t('sales')} {t('entry')}</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
