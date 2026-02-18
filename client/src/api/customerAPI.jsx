@@ -11,6 +11,7 @@ export const createCustomer = async (data) => {
 };
 
 export const getLastCustomerTransactions = async (data) => {
+  console.log("Fetching last transactions with data:", data);
   const response = await apiClient.post('/customer/last_transaction', data);
   return response;
 };

@@ -40,10 +40,15 @@ export const deleteSupplier = async (id) => {
     }
 };
 
-export const getLastSupplierTransactions = async (id) => {
+export const getLastSupplierTransactions = async (id, fromDate = '', toDate = '') => {
     try {
-        const response = await apiClient.get(`/supplier/last_transaction/${encodeURIComponent(id)}`);
-        return response;
+        // Constructing URL with optional query parameters for filtering
+        let url = `/supplier/last_transaction/${encodeURIComponent(id)}`;
+        if (fromDate && toDate) {
+            url += `?fromDate=${fromDate}&toDate=${toDate}`;
+        }
+        const response = await apiClient.get(url);
+        return response; // Returns the full response object
     } catch (error) {
         console.error('Error fetching last transaction:', error);
         throw error;

@@ -145,6 +145,13 @@ const lang = {
   company_address: "Company Address",
   create_user: "Create User",
   logout: "Logout",
+  type: 'Type',
+  from_date: 'From Date',
+  to_date: 'To Date',
+  Debit: 'Debit',
+  Credit: 'Credit',
+  transaction: 'Transaction',
+  'transaction history': 'Transaction History',
 };
 
 export default lang;

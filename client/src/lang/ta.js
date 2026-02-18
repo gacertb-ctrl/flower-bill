@@ -144,6 +144,14 @@ const lang = {
     company_address: "நிறுவனத்தின் முகவரி",
     create_user: "பயனரை உருவாக்கு",
     logout: "வெளியேறு",
+    type: 'வகை',
+    from_date: 'தொடக்க தேதி',
+    to_date: 'முடிவு தேதி',
+    Debit: 'பற்று',
+    Credit: 'வரவு',
+    transaction: 'பரிவர்த்தனை',
+    'transaction history': 'பரிவர்த்தனை வரலாறு',
+    Payment: 'பற்று',
 };
 
 export default lang;

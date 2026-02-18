@@ -33,15 +33,63 @@ const updateCustomer = async (req, res) => {
 
 const getLastCustomerTransactions = async (req, res) => {
     try {
-        const { cus_sup_code } = req.body;
+        const { cus_sup_code, fromDate, toDate } = req.body;
         if (!cus_sup_code) {
             return res.status(400).json({ error: 'cus_sup_code is required' });
         }
-        const [rows] = await req.conn.execute("SELECT debit_amount as total, debit_date as date, 'sales' as type, customer_supplier_code FROM debit WHERE customer_supplier_code = ? AND organization_id = ? ORDER BY date DESC LIMIT 5", [cus_sup_code, req.user.organization_id]);
-        res.json(rows);
+
+        // Using UNION to combine Debit and Credit entries
+        let query = `
+            SELECT * FROM (
+                SELECT 
+                    debit_amount as total,
+                    DATE(debit_date) as date,
+                    'sales' as type, 
+                    customer_supplier_code 
+                FROM debit 
+                WHERE customer_supplier_code = ? AND organization_id = ?
+                
+                UNION ALL
+                
+                SELECT 
+                    credit_amount as total,
+                    DATE(credit_date) as date, 
+                    'Credit' as type, 
+                    customer_supplier_code 
+                FROM credit 
+                WHERE customer_supplier_code = ? AND organization_id = ?
+            ) AS combined_transactions
+        `;
+
+        const queryParams = [
+            cus_sup_code, req.user.organization_id,
+            cus_sup_code, req.user.organization_id
+        ];
+
+        if (fromDate && toDate) {
+            query += ` WHERE date BETWEEN ? AND ?`;
+            queryParams.push(fromDate, toDate);
+        }
+
+        query += ` ORDER BY date DESC`;
+
+        // Default to last 5 if no range is picked
+        if (!fromDate || !toDate) {
+            query += ` LIMIT 5`;
+        }
+
+        const [rows] = await req.conn.execute(query, queryParams);
+        const formattedRows = rows.map(row => ({
+            ...row,
+            date: row.date ? row.date.toLocaleDateString("en-CA", {
+                timeZone: "Asia/Kolkata"
+            }) : null
+        }));
+
+        res.json(formattedRows);
     } catch (error) {
-        console.error('Error fetching last customer transactions:', error);
-        res.status(500).send('Error fetching last customer transactions');
+        console.error('Error fetching transactions:', error);
+        res.status(500).send('Error fetching transactions');
     }
 };
 

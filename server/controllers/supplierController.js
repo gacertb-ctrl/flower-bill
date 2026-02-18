@@ -68,11 +68,57 @@ const getAllSuppliers = async (req, res) => {
 
 const getLastSupplierTransactions = async (req, res) => {
     try {
-        const [rows] = await req.conn.execute("SELECT credit_amount as total, credit_date as date, 'purchase' as type, customer_supplier_code FROM credit WHERE customer_supplier_code = ? AND organization_id = ? ORDER BY date DESC LIMIT 5", [req.params.code, req.user.organization_id]);
-        res.json(rows);
+        const { code } = req.params; // Using params as per your API helper
+        const { fromDate, toDate } = req.query; // Filtering usually sent via query in GET
+        const orgId = req.user.organization_id;
+
+        let query = `
+            SELECT * FROM (
+                SELECT 
+                    credit_amount as total, 
+                    DATE(credit_date) as date,
+                    'purchase' as type,
+                    customer_supplier_code 
+                FROM credit 
+                WHERE customer_supplier_code = ? AND organization_id = ?
+                
+                UNION ALL
+                
+                SELECT 
+                    debit_amount as total, 
+                    DATE(debit_date) as date, 
+                    'Payment' as type, 
+                    customer_supplier_code 
+                FROM debit 
+                WHERE customer_supplier_code = ? AND organization_id = ?
+            ) AS supplier_ledger
+        `;
+        
+        const queryParams = [code, orgId, code, orgId];
+
+        if (fromDate && toDate) {
+            query += ` WHERE date BETWEEN ? AND ?`;
+            queryParams.push(fromDate, toDate);
+        }
+
+        query += ` ORDER BY date DESC`;
+
+        if (!fromDate || !toDate) {
+            query += ` LIMIT 5`;
+        }
+
+        const [rows] = await req.conn.execute(query, queryParams);
+        const formattedRows = rows.map(row => ({
+            ...row,
+            date: row.date ? row.date.toLocaleDateString("en-CA", {
+                timeZone: "Asia/Kolkata"
+            }) : null
+        }));
+
+        res.json(formattedRows);
     } catch (error) {
-        console.error('Error fetching last supplier transactions:', error);
-        res.status(500).send('Error fetching last supplier transactions');
+        console.error('Error fetching supplier transactions:', error);
+        res.status(500).send('Internal Server Error');
     }
 };
 
