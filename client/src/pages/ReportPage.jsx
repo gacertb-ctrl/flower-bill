@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getReportSummary, getTamilMonths } from '../api/reportAPI.jsx';
+import { getReportSummary, getTamilMonths, updateSupplierOD } from '../api/reportAPI.jsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCloudDownload } from '@fortawesome/free-solid-svg-icons';
+import { faCloudDownload, faSync } from '@fortawesome/free-solid-svg-icons';
+import '../styles/bootstrap.min.css';
 
 const ReportPage = () => {
     const { t } = useTranslation();
@@ -13,6 +14,7 @@ const ReportPage = () => {
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [tableData, setTableData] = useState([]);
+    const [isUpdatingOD, setIsUpdatingOD] = useState(false);
 
     useEffect(() => {
         const fetchMonths = async () => {
@@ -25,6 +27,26 @@ const ReportPage = () => {
         };
         fetchMonths();
     }, []);
+
+    const handleUpdateOD = async () => {
+        // 1. Validation first
+        if (!selectedMonth || !selectedYear) return;
+
+        if (window.confirm(t('Are you sure?'))) {
+            // 2. SET LOADING TO TRUE BEFORE TRY BLOCK
+            setIsUpdatingOD(true);
+
+            try {
+                await updateSupplierOD({ month: selectedMonth, year: selectedYear });
+                alert(t('Success'));
+            } catch (e) {
+                console.error(e);
+            } finally {
+                // 3. SET LOADING TO FALSE ONLY AFTER FINISHED
+                setIsUpdatingOD(false);
+            }
+        }
+    };
 
     const loadReportTable = async () => {
         if (!period || !reportType) return;
@@ -123,6 +145,26 @@ const ReportPage = () => {
                     </div>
                 )}
 
+                {period === 'month' && reportType === 'purchase' && tableData.length > 0 && (
+                    <button
+                        className="btn btn-warning shadow-sm fw-bold px-4 rounded-pill"
+                        onClick={handleUpdateOD}
+                        disabled={isUpdatingOD} // Disable while loading
+                    >
+                        {isUpdatingOD ? (
+                            <>
+                                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                {t('Updating...')}
+                            </>
+                        ) : (
+                            <>
+                                <FontAwesomeIcon icon={faSync} className="me-2" />
+                                {t('Update Monthly OD')}
+                            </>
+                        )}
+                    </button>
+                )}
+
                 <div className="table-responsive">
                     <table className="table table-bordered table-hover">
                         <thead>
@@ -184,6 +226,28 @@ const ReportPage = () => {
                     </table>
                 </div>
             </div>
+            {/* --- PLACE THE LOADER HERE (AT THE VERY END) --- */}
+            {isUpdatingOD && (
+                <div className="d-flex flex-column justify-content-center align-items-center"
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100vw',
+                        height: '100vh',
+                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                        zIndex: 10000,
+                        backdropFilter: 'blur(4px)'
+                    }}>
+                    <div className="bg-white p-4 rounded-4 shadow-lg text-center" style={{ minWidth: '250px' }}>
+                        <div className="spinner-border text-primary mb-3" role="status" style={{ width: '3rem', height: '3rem' }}>
+                            <span className="visually-hidden">Loading...</span>
+                        </div>
+                        <h5 className="fw-bold mb-1">{t('Processing...')}</h5>
+                        <p className="text-muted small mb-0">{t('Calculating Monthly OD')}</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

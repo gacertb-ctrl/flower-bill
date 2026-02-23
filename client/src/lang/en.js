@@ -101,9 +101,9 @@ const lang = {
   password: 'Password',
   'login.loading': 'Logging in...',
   welcome: 'Welcome',
-  ganthimathi: 'Ganthimathi Stores',
-  full_address: '57, Madurai Road, Tirunelveli Junction',
-  phone_no: 'Phone: 8667566419',
+  ganthimathi: 'Sri Ganthimathi Malargalam',
+  full_address: 'Hotel Semmeen Complex, Tirunelveli Junction - 627001',
+  phone_no: 'Call: 9688346230 Shop: 0462 - 4803233',
   'billing no': 'Bill No',
   'patta no': 'Patta No',
   'prepaid': 'Prepaid',
@@ -156,6 +156,7 @@ const lang = {
   ledger: 'Ledger',
   "Daily Entries": "Daily Entries",
   "Manage your daily stock movement": "Manage your daily stock movement",
+  prev_balance: 'Previous Balance',
 };
 
 export default lang;

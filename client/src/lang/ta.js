@@ -100,9 +100,9 @@ const lang = {
     password: 'கடவுச்சொல்',
     'login.loading': 'உள்நுழைகிறது...',
     welcome: 'வரவேற்கிறோம்',
-    ganthimathi: 'காந்திமதி ஸ்டோர்ஸ்',
-    full_address: '57, மதுரை சாலை, திருநெல்வேலி ஜங்ஷன்',
-    phone_no: 'தொலைபேசி: 8667566419',
+    ganthimathi: 'ஸ்ரீ காந்திமதி மலரகம்',
+    full_address: 'ஹோட்டல் செம்மீன் காம்ப்ளக்ஸ், திருநெல்வேலி ஜங்ஷன் - 627001',
+    phone_no: 'Call: 9688346230 கடை: 0462 - 4803233',
     'billing no': 'பில் எண்',
     'patta no': 'பட்டா எண்',
     'prepaid': 'முன்பணம்',
@@ -156,6 +156,9 @@ const lang = {
     ledger: 'பதிவுகள்',
     "Daily Entries": "நாள் பதிவுகள்",
     "Manage your daily stock movement": "நாள் பதிவுகளை நிர்வகிக்கவும்",
+    prev_balance: 'முந்தைய இருப்பு',
+    sales_bill:"விற்பனை சிட்டை",
+    purchase_bill:"வாங்கிய சிட்டை",
 };
 
 export default lang;

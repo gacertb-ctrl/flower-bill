@@ -14,3 +14,8 @@ export const getPrintDetails = async (params) => {
     const response = await apiClient.get('/report/print-details', { params });
     return response.data;
 };
+
+export const updateSupplierOD = async (data) => {
+    const response = await apiClient.put(`/report/supplier/monthlyod`, data);
+    return response.data;
+}

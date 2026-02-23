@@ -156,8 +156,9 @@ exports.getPrintDetails = async (req, res) => {
             customerParams.push(date);
         } else {
             const dates = await getTamilMonthDates(month, year);
+            console.log("Tamil Month Dates:", dates);
             if (dates.length === 0) return res.json([]);
-
+            
             const dateList = dates
                 .map(d => `'${new Date(d.date).toISOString().slice(0, 10)}'`)
                 .join(',');
@@ -227,7 +228,25 @@ exports.getPrintDetails = async (req, res) => {
                     dataObj.daily_credits = [];
                 }
 
-                const [odRes] = await db.query(`SELECT od_amount FROM supplier_od_old WHERE customer_supplier_code = ? AND tamil_month_name_en = ? AND year = ? AND organization_id = ?`, [customer.customer_supplier_code, month, year, req.user.organization_id]);
+                const tamilMonths = [
+                    'Chithirai', 'Vaikaasi', 'Aani', 'Aadi', 'Aavani', 'Purattasi',
+                    'Aippasi', 'Karthikai', 'Markazhi', 'Thai', 'Maasi', 'Panguni'
+                ];
+
+                const monthIndex = tamilMonths.indexOf(month);
+
+                let odMonth;
+                if (monthIndex > 0) {
+                    // If it's not the first month, take the previous one
+                    odMonth = tamilMonths[monthIndex - 1];
+                } else {
+                    // If it's Chithirai (index 0) or not found (-1), default to Panguni
+                    odMonth = 'Panguni';
+                }
+                const odYear = (odMonth == 'Markazhi') ? year - 1 : year;
+
+                // Fetch Opening Balance
+                const [odRes] = await db.query(`SELECT od_amount FROM supplier_od_old WHERE customer_supplier_code = ? AND tamil_month_name_en = ? AND year = ? AND organization_id = ?`, [customer.customer_supplier_code, odMonth, odYear, req.user.organization_id]);
                 dataObj.opening_balance = odRes[0]?.od_amount || 0;
             }
 
@@ -257,5 +276,79 @@ exports.getTamilDateByCalendarDate = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).send("Internal Server Error");
+    }
+};
+
+exports.updateSupplierMonthlyOD = async (req, res) => {
+    try {
+        const { month, year } = req.body;
+        const orgId = req.user.organization_id;
+
+        // 1. Get Dates for the Selected Tamil Month
+        const dates = await getTamilMonthDates(month, year);
+        if (!dates.length) return res.status(400).json({ message: "Invalid Tamil month/year" });
+        const dateStrings = dates.map(d => `'${new Date(d.date).toISOString().slice(0, 10)}'`).join(',');
+
+        // 2. Fetch All Active Suppliers
+        const [suppliers] = await db.query(
+            "SELECT customer_supplier_code, supplier_commission FROM customer_supplier WHERE supplier = 'Y' AND customer_supplier_is_active = 'Y' AND organization_id = ?",
+            [orgId]
+        );
+
+        const tamilMonths = [
+            'Chithirai', 'Vaikaasi', 'Aani', 'Aadi', 'Aavani', 'Purattasi',
+            'Aippasi', 'Karthikai', 'Markazhi', 'Thai', 'Maasi', 'Panguni'
+        ];
+        const monthIndex = tamilMonths.indexOf(month);
+
+        // Find Previous Month for OD retrieval
+        const prevMonth = monthIndex > 0 ? tamilMonths[monthIndex - 1] : 'Panguni';
+        const prevYear = (prevMonth === 'Markazhi' ? year - 1 : year);
+
+        const updateResults = [];
+
+        for (const sup of suppliers) {
+            const code = sup.customer_supplier_code;
+            // const code = "ப.கோ. குத்தாலம்"; // --- TEMP FIX for testing, replace with dynamic code in production ---
+
+            // 2. Get Monthly Debits and Credits
+
+            // 3. Get Monthly Totals
+            const [totals] = await db.query(`
+                SELECT 
+                    (SELECT COALESCE(SUM(debit_amount), 0) FROM debit WHERE customer_supplier_code = ? AND debit_date IN (${dateStrings}) AND organization_id = ?) as debit,
+                    (SELECT COALESCE(SUM(credit_amount), 0) FROM credit WHERE customer_supplier_code = ? AND credit_date IN (${dateStrings}) AND organization_id = ?) as credit
+            `, [code, orgId, code, orgId]);
+
+            // 4. Get Previous Month OD
+            const [prevOD] = await db.query(
+                "SELECT COALESCE(od_amount, 0) as amount FROM supplier_od_old WHERE customer_supplier_code = ? AND tamil_month_name_en = ? AND year = ? AND organization_id = ?",
+                [code, prevMonth, prevYear, orgId]
+            );
+            
+            const currentDebit = parseFloat(totals[0].debit);
+            const currentCredit = parseFloat(totals[0].credit);
+            const openingBal = parseFloat(prevOD[0]?.amount || 0);
+
+            // 5. Calculation: (Prev OD + Debit) - Credit
+            // Note: Adjust the formula if your business logic requires (Credit - Debit)
+            const balanceAmount = (openingBal + currentDebit) - (currentCredit - (currentCredit * (sup.supplier_commission || 0) / 100)); // Adjusting for commission if applicable
+
+            // 6. Update or Insert into supplier_od_old for the CURRENT month
+            if (balanceAmount > 0) {
+                await db.query(`
+                    INSERT INTO supplier_od_old (customer_supplier_code, tamil_month_name_en, year, od_amount, organization_id)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE od_amount = VALUES(od_amount)
+                `, [code, month, year, balanceAmount, orgId]);
+                updateResults.push({ code, balanceAmount });
+            }
+        }
+
+        res.json({ message: "Monthly OD updated successfully", updatedCount: updateResults.length });
+
+    } catch (error) {
+        console.error("OD Update Error:", error);
+        res.status(500).json({ error: error.message });
     }
 };
