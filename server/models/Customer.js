@@ -25,13 +25,20 @@ class Customer {
         await this.conn.execute(sql, values);
     }
 
-    async deleteCustomer(code) {
+    async deleteCustomer(code, organization_id) {
         const sql = "UPDATE customer_supplier SET customer_supplier_is_active = 'N' WHERE customer_supplier_code = ? AND organization_id = ?";
-        const values = [code, this.conn.organization_id];
+        const values = [code, organization_id];
 
         await this.conn.execute(sql, values);
     }
     // You can add more methods here, e.g., getCustomer, deleteCustomer, etc.
+
+    async checkCustomerCodeExists(code, organization_id) {
+        const sql = "SELECT * FROM customer_supplier WHERE customer_supplier_code = ? AND organization_id = ?";
+        const values = [code, organization_id];
+        return await this.conn.execute(sql, values);
+    }
+
 }
 
 module.exports = Customer;

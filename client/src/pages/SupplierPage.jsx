@@ -36,15 +36,13 @@ const SupplierPage = () => {
         response = await createSupplier(formData);
       }
 
-      if (!response.data) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       const updatedSuppliers = await fetchSuppliers();
       setSupplierData(updatedSuppliers);
 
       setShowModal(false);
       setEditData(null);
+
+      alert(t(response.data?.message || 'Operation successful'));
     } catch (error) {
       console.error('Error submitting form:', error);
     }
@@ -68,7 +66,7 @@ const SupplierPage = () => {
       if (confirmed) {
         await deleteSupplier(id);
         fetchData()
-        alert(t('messages.salesDeleted')); // Ensure this key exists or update to 'messages.supplierDeleted'
+        alert(t('Supplier Deleted')); // Ensure this key exists or update to 'messages.supplierDeleted'
       }
       const updatedSuppliers = await fetchSuppliers();
       setSupplierData(updatedSuppliers);

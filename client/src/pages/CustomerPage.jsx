@@ -35,17 +35,30 @@ const CustomerPage = () => {
         response = await createCustomer(formData);
       }
 
-      if (!response.data) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       const updatedCustomers = await fetchCustomers();
       setCustomerData(updatedCustomers);
 
       setShowModal(false);
       setEditData(null);
+
+      alert(t(response.data?.message || 'Operation successful'));
+
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error("Full error:", error);
+
+      // ✅ Backend returned error (400, 422, etc.)
+      if (error.response) {
+        console.error("Backend error:", error.response.data);
+        alert(t(error.response.data?.error) || "Something went wrong");
+      }
+      // ✅ Network error (server not running, CORS, etc.)
+      else if (error.request) {
+        alert("Server not responding");
+      }
+      // ✅ Other error
+      else {
+        alert("Unexpected error occurred");
+      }
     }
   };
 
@@ -69,7 +82,7 @@ const CustomerPage = () => {
       if (confirmed) {
         await deleteCustomer(id);
         fetchData()
-        alert(t('messages.salesDeleted')); // Ensure this key exists or change to 'messages.customerDeleted'
+        alert(t('Customer Deleted')); // Ensure this key exists or change to 'messages.customerDeleted'
       }
       const updatedCustomers = await fetchCustomers();
       setCustomerData(updatedCustomers);

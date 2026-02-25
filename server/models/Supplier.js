@@ -27,9 +27,9 @@ class Supplier {
         return rows;
     }
 
-    async deleteSupplier(code) {
+    async deleteSupplier(code, organization_id) {
         const sql = "UPDATE customer_supplier SET customer_supplier_is_active = 'N' WHERE customer_supplier_code = ? AND organization_id = ?";
-        const values = [code, this.conn.organization_id];
+        const values = [code, organization_id];
 
         await this.conn.execute(sql, values);
     }

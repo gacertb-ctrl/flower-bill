@@ -6,10 +6,14 @@ const addCustomer = async (req, res) => {
         const customer = new Customer(req.conn, req.conn1);
         var params = req.body;
         params.organization_id = req.user.organization_id;
+        const codeExists = await customer.checkCustomerCodeExists(params.code, req.user.organization_id);
+        if (codeExists[0].length > 0) {
+            return res.status(400).json({ error: 'Customer code already exists' });
+        } 
 
         await customer.addCustomer(params);
         // const tableHtml = await getTableData(req.conn, 'customer'); // Get data for 'customer' table
-        res.status(200).json({ data: "success", status: 200 });
+        res.status(200).json({ data: "Customer Added Successfully", status: 200 });
     } catch (error) {
         console.error('Error adding customer:', error);
         res.status(500).send('Error adding customer');
@@ -24,7 +28,7 @@ const updateCustomer = async (req, res) => {
 
         await customer.updateCustomer(params);
         // const tableHtml = await getTableData(req.conn, 'customer'); // Get data for 'customer' table
-        res.json({ message: global.lang['customer updated'] });
+        res.json({ message: "Customer updated successfully" });
     } catch (error) {
         console.error('Error updating customer:', error);
         res.status(500).send('Error updating customer');
@@ -133,7 +137,7 @@ const getAllCustomers = async (req, res) => {
 const deleteCustomer = async (req, res) => {
     try {
         const customer = new Customer(req.conn, req.conn1);
-        await customer.deleteCustomer(req.params.code);
+        await customer.deleteCustomer(req.params.code, req.user.organization_id);
         res.json({ message: global.lang['customer deleted'] });
     } catch (error) {
         console.error('Error deleting customer:', error);

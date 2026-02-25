@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Table from '../components/Table';
 import ProductModal from '../components/modals/ProductModal';
 import { useTranslation } from 'react-i18next';
-import { fetchProducts, createProduct, updateProduct } from '../api/productAPI';
+import { fetchProducts, createProduct, updateProduct, deleteProduct } from '../api/productAPI';
 
 const ProductPage = () => {
   const [showModal, setShowModal] = useState(false);
@@ -33,7 +33,7 @@ const ProductPage = () => {
         response = await createProduct(formData);
       }
 
-      if (!response.data) {
+      if (!response.message || response.status !== 200) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -46,6 +46,19 @@ const ProductPage = () => {
       console.error('Error submitting product form:', error);
     }
   };
+
+  const deleteData = async (code) => {
+    try {
+      const response = await deleteProduct(code);
+      if (!response.message || response.status !== 200) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const updatedProducts = await fetchProducts();
+      setProductData(updatedProducts);
+    } catch (error) {
+      console.error('Error deleting product:', error);
+    }
+  }
 
   return (
     <div className="container-fluid mt-5 pt-4">
@@ -72,6 +85,7 @@ const ProductPage = () => {
                 data={productData}
                 setShowModal={setShowModal}
                 setEditData={setEditData}
+                deleteData={deleteData}
               />
             </div>
           </div>

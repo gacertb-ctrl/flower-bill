@@ -8,7 +8,7 @@ const addSupplier = async (req, res) => {
         params.organization_id = req.user.organization_id;
 
         await supplier.addSupplier(params);
-        res.status(200).json({ data: "success", status: 200 });
+        res.status(200).json({ data: "Supplier Added Successfully", status: 200 });
     } catch (error) {
         console.error('Error adding supplier:', error);
         res.status(500).send('Error adding supplier');
@@ -21,7 +21,7 @@ const updateSupplier = async (req, res) => {
         var params = req.body;
         params.organization_id = req.user.organization_id;
         await supplier.updateSupplier(params);
-        res.status(200).json({ data: "success", status: 200 });
+        res.status(200).json({ data: "Supplier Updated Successfully", status: 200 });
     } catch (error) {
         console.error('Error updating supplier:', error);
         res.status(500).send('Error updating supplier');
@@ -126,8 +126,8 @@ const getLastSupplierTransactions = async (req, res) => {
 const deleteSupplier = async (req, res) => {
     try {
         const supplier = new Supplier(req.conn, req.conn1);
-        await supplier.deleteSupplier(req.params.code);
-        res.status(200).json({ data: "success", status: 200 });
+        await supplier.deleteSupplier(req.params.code, req.user.organization_id);
+        res.status(200).json({ data: "Supplier Deleted", status: 200 });
     } catch (error) {
         console.error('Error deleting supplier:', error);
         res.status(500).send('Error deleting supplier');

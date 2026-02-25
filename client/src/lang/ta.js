@@ -159,6 +159,14 @@ const lang = {
     prev_balance: 'முந்தைய இருப்பு',
     sales_bill:"விற்பனை சிட்டை",
     purchase_bill:"வாங்கிய சிட்டை",
+    "Customer code already exists": "வாடிக்கையாளர் குறியீடு ஏற்கனவே உள்ளது",
+    "Customer Added Successfully": "வாடிக்கையாளர் வெற்றிகரமாக சேர்க்கப்பட்டது",
+    "Customer updated successfully": "வாடிக்கையாளர் வெற்றிகரமாக புதுப்பிக்கப்பட்டது",
+    "Customer Deleted": "வாடிக்கையாளர் நீக்கப்பட்டது",
+    "Supplier Deleted": "விநியோகஸ்தர் நீக்கப்பட்டது",
+    "Supplier updated successfully": "விநியோகஸ்தர் வெற்றிகரமாக புதுப்பிக்கப்பட்டது",
+    "Supplier Added Successfully": "விநியோகஸ்தர் வெற்றிகரமாக சேர்க்கப்பட்டது",
+    "Supplier code already exists": "விநியோகஸ்தர் குறியீடு ஏற்கனவே உள்ளது",
 };
 
 export default lang;

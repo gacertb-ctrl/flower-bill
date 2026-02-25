@@ -9,12 +9,17 @@ const Table = ({ page, data, setShowModal, setEditData, loadLastTransaction, del
   const { t } = useTranslation();
   const { user } = useAuth();
 
-
   const handleEdit = (row) => {
+    console.log('Editing row:', row);
     setEditData(row);
     setShowModal(true);
   };
 
+  const handleDelete = (code) => {
+    if (window.confirm(t('confirm.delete'))) {
+      deleteData(code);
+    }
+  };  
   // Define Columns based on the Page Type
   const getColumns = () => {
     const commonActions = {
@@ -29,18 +34,20 @@ const Table = ({ page, data, setShowModal, setEditData, loadLastTransaction, del
           >
             <FontAwesomeIcon icon={faPen} />
           </button>
-          <button
-            className="btn btn-info btn-sm me-1 text-white"
-            title={t('last transaction')}
-            onClick={() => loadLastTransaction(page === 'product' ? page : row.code, row.customer_supplier_id)}
-          >
-            <FontAwesomeIcon icon={faClockRotateLeft} />
-          </button>
-          {page !== 'product' && user.role === 'admin' && (
+          {page !== 'product' && (
+            <button
+              className="btn btn-info btn-sm me-1 text-white"
+              title={t('last transaction')}
+              onClick={() => loadLastTransaction(page === 'product' ? page : row.code, row.customer_supplier_id)}
+            >
+              <FontAwesomeIcon icon={faClockRotateLeft} />
+            </button>
+          )}
+          { user.role === 'admin' && (
             <button
               className="btn btn-danger btn-sm"
-              title={t('confirm.delete')}
-              onClick={() => deleteData(row.code)}
+              // title={t('confirm.delete')}
+              onClick={() => handleDelete(row.code)}
             >
               <FontAwesomeIcon icon={faTrash} />
             </button>

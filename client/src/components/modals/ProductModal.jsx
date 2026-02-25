@@ -11,11 +11,11 @@ const ProductModal = ({
 }) => {
     const { t } = useTranslation();
     const [formData, setFormData] = useState({
-        code: "",
-        name: "",
-        quality: "",
-        unit: "",
-        price: ""
+        product_code: "",
+        product_name: "",
+        product_quality: "",
+        product_unit: "",
+        product_price: ""
     });
 
     const handleChange = (e) => {
@@ -33,11 +33,11 @@ const ProductModal = ({
 
     useEffect(() => {
         setFormData({
-            code: initialData?.code || '',
-            name: initialData?.name || '',
-            quality: initialData?.quality || '',
-            unit: initialData?.unit || '',
-            price: initialData?.price || ''
+            product_code: initialData?.product_code || initialData?.code || '',
+            product_name: initialData?.product_name || initialData?.name || '',
+            product_quality: initialData?.product_quality || initialData?.quality || '',
+            product_unit: initialData?.product_unit || initialData?.unit || '',
+            product_price: initialData?.product_price || initialData?.price || ''
         });
     }, [initialData]);
 
@@ -56,9 +56,9 @@ const ProductModal = ({
                         <input
                             type="text"
                             className="form-control"
-                            id="code"
+                            id="product_code"
                             placeholder={t('product.code')}
-                            value={formData.code}
+                            value={formData.product_code}
                             onChange={handleChange}
                             required
                             disabled={mode === 'update'}
@@ -68,9 +68,9 @@ const ProductModal = ({
                         <input
                             type="text"
                             className="form-control"
-                            id="name"
+                            id="product_name"
                             placeholder={t('product.name')}
-                            value={formData.name}
+                            value={formData.product_name}
                             onChange={handleChange}
                             required
                         />
@@ -81,15 +81,15 @@ const ProductModal = ({
                             className="form-control"
                             id="quality"
                             placeholder={t('product.quality')}
-                            value={formData.quality}
+                            value={formData.product_quality}
                             onChange={handleChange}
                         />
                     </div>
                     <div className="col-md-3 mt-3">
                         <select
                             className="form-select"
-                            name="unit"
-                            value={formData.unit}
+                            name="product_unit"
+                            value={formData.product_unit}
                             onChange={handleSelectChange}
                         >
                             <option value="">{t('select.unit')}</option>
@@ -105,7 +105,7 @@ const ProductModal = ({
                             className="form-control"
                             id="price"
                             placeholder={t('product.price')}
-                            value={formData.price}
+                            value={formData.product_price}
                             onChange={handleChange}
                         />
                     </div>
