@@ -35,6 +35,7 @@ const SalesTable = ({ data, handleDelete, handleEdit }) => {
     { name: t('product.name'), selector: row => row.product_name, sortable: true },
     { name: t('price'), selector: row => (row.sales_rate || 0).toFixed(2), sortable: true },
     { name: t('quantity'), selector: row => (row.sales_quality || 0).toFixed(2), sortable: true },
+    { name: t('unit'), selector: row => t(row.sales_unit), sortable: true },
     { name: t('total'), selector: row => (row.sales_total || 0).toFixed(2), sortable: true },
     {
       name: t('action'),

@@ -167,6 +167,7 @@ const lang = {
     "Supplier updated successfully": "விநியோகஸ்தர் வெற்றிகரமாக புதுப்பிக்கப்பட்டது",
     "Supplier Added Successfully": "விநியோகஸ்தர் வெற்றிகரமாக சேர்க்கப்பட்டது",
     "Supplier code already exists": "விநியோகஸ்தர் குறியீடு ஏற்கனவே உள்ளது",
+    "pie": "எண்ணிக்கை",
 };
 
 export default lang;

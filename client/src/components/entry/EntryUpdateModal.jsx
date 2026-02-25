@@ -13,6 +13,7 @@ const EntryUpdateModal = ({ show, onHide, type, editData, onSuccess }) => {
   });
 
   useEffect(() => {
+    console.log("Received editData:", editData);
     if (editData) {
       setFormData({
         id: editData.id,
@@ -67,7 +68,7 @@ const EntryUpdateModal = ({ show, onHide, type, editData, onSuccess }) => {
               </Form.Group>
             </Col>
 
-            <Col md={4}>
+            {/* <Col md={4}>
               <Form.Group>
                 <Form.Label>{t('unit')}</Form.Label>
                 <Form.Select
@@ -81,9 +82,9 @@ const EntryUpdateModal = ({ show, onHide, type, editData, onSuccess }) => {
                   <option value="pie">pieces</option>
                 </Form.Select>
               </Form.Group>
-            </Col>
+            </Col> */}
 
-            <Col md={4}>
+            <Col md={5}>
               <Form.Group>
                 <Form.Label>{t('price')}</Form.Label>
                 <Form.Control
@@ -92,6 +93,12 @@ const EntryUpdateModal = ({ show, onHide, type, editData, onSuccess }) => {
                   onChange={handleChange}
                 />
               </Form.Group>
+            </Col>
+
+            <Col md={3} className="d-flex align-items-end">
+              <label className="text-muted">
+                {t(formData?.unit || "")}
+              </label>
             </Col>
           </Row>
         </Form>

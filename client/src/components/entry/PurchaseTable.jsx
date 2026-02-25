@@ -34,6 +34,7 @@ const PurchaseTable = ({ data, handleDelete, handleEdit }) => {
     { name: t('product.name'), selector: row => row.product_name, sortable: true },
     { name: t('price'), selector: row => (row.purchase_rate || 0).toFixed(2), sortable: true },
     { name: t('quantity'), selector: row => (row.purchase_quality || 0).toFixed(2), sortable: true },
+    { name: t('unit'), selector: row => t(row.purchase_unit), sortable: true },
     { name: t('total'), selector: row => (row.purchase_total || 0).toFixed(2), sortable: true },
     {
       name: t('action'),

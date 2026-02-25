@@ -72,7 +72,7 @@ const EntryPage = () => {
       product_code: row.product_code,
       quantity: row.purchase_quality,
       price: row.purchase_rate,
-      unit: row.unit,
+      unit: row.purchase_unit,
       type: "purchase"
     });
     setShowUpdateModal(true);
@@ -99,7 +99,7 @@ const EntryPage = () => {
       product_code: row.product_code,
       quantity: row.sales_quality,
       price: row.sales_rate,
-      unit: row.unit,
+      unit: row.sales_unit,
       type: "sales"
     });
     setShowUpdateModal(true);
@@ -155,6 +155,11 @@ const EntryPage = () => {
               value={date}
               onChange={(e) => setDate(e.target.value)}
               disabled={!isAdmin}
+              onClick={(e) => {
+                if (isAdmin && e.target.showPicker) {
+                  e.target.showPicker();
+                }
+              }}
             />
           </div>
         </div>
