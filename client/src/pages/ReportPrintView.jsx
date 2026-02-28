@@ -156,7 +156,7 @@ const ReportPrintView = () => {
                                             <div className="row g-0 py-1 border-bottom border-dark" style={{ fontSize: '9px' }}>
                                                 <div className="col-7 ps-1">
                                                     <div className="fw-bold">{slot.customer_supplier_name} {slot.hasMultiplePages && slot.pageLabel}</div>
-                                                    <div>{(type === 'purchase') ? t('purchase_bill') : t('sales_bill')}</div>
+                                                    <div>{(type === 'purchase') ? t('purchase_bill') : t('sales_bill')} - {gIdx + 1}</div>
                                                 </div>
                                                 <div className="col-5 text-end pe-1">
                                                     <div>{searchParams.get('date')}</div>
@@ -172,6 +172,7 @@ const ReportPrintView = () => {
                                                             <th className="border-end" width="10%">{t('no')}</th>
                                                             <th className="border-end" width="45%">{t('items')}</th>
                                                             <th className="border-end" width="15%">{t('quantity')}</th>
+                                                            <th className="border-end" width="15%">{t('unit')}</th>
                                                             <th className="border-end" width="15%">{t('amount')}</th>
                                                             <th className="" width="15%">{t('total')}</th>
                                                         </tr>
@@ -180,15 +181,17 @@ const ReportPrintView = () => {
                                                         {slot.displayItems.map((item, iIdx) => (
                                                             <tr key={iIdx}>
                                                                 <td className="text-center border-end">{iIdx + 1}</td>
-                                                                <td className="border-end">{item.product_name}</td>
+                                                                <td className="text-center border-end">{item.product_name}</td>
                                                                 <td className="text-center border-end">{item.quality}</td>
-                                                                <td className="text-end border-end">{item.rate}</td>
-                                                                <td className="text-end fw-bold">{item.total}</td>
+                                                                <td className="text-center border-end">{item?.purchase_unit || item?.sales_unit}</td>
+                                                                <td className="text-center border-end">{item.rate}</td>
+                                                                <td className="text-center fw-bold">{item.total}</td>
                                                             </tr>
                                                         ))}
                                                         {/* Filler rows to maintain height */}
                                                         {[...Array(CONFIG.itemsLimit - slot.displayItems.length)].map((_, i) => (
                                                             <tr key={`f-${i}`} style={{ height: '22px' }}>
+                                                                <td className="border-end"></td>
                                                                 <td className="border-end"></td>
                                                                 <td className="border-end"></td>
                                                                 <td className="border-end"></td>
