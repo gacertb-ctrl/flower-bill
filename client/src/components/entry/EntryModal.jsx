@@ -1,58 +1,66 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Button, Form, Row, Col, Table } from 'react-bootstrap';
+import { Modal, Button, Form, Row, Col, Table, InputGroup } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faTrash, faMoon, faUser, faBoxOpen,
+  faCalendarCheck, faIndianRupeeSign, faPlus,
+  faAddressCard, faLayerGroup, faShoppingCart, faArrowUpRightFromSquare
+} from '@fortawesome/free-solid-svg-icons';
+
 import { fetchSuppliers } from '../../api/supplierAPI';
 import { fetchCustomers } from '../../api/customerAPI';
 import { fetchProducts } from '../../api/productAPI';
-import { createPurchaseEntryBulk, createSalesEntryBulk } from '../../api/entryAPI'; // Updated Import
+import { createPurchaseEntryBulk, createSalesEntryBulk } from '../../api/entryAPI';
 import { SearchableSelect } from './SearchableSelect';
-import { faPen, faTrash, faClockRotateLeft, faMoon } from '@fortawesome/free-solid-svg-icons';
-
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import "../../styles/custom.css";
 
 const EntryModal = ({ type, show, onHide, onSubmit, date, tamilDateInfo }) => {
   const { t } = useTranslation();
 
-  // 1. Header Data (Customer & Date)
+  // Mode: 'account' (One Person -> Many Products) or 'product' (One Product -> Many People)
+  const [viewMode, setViewMode] = useState('account');
+  const [loading, setLoading] = useState(false);
+
   const [headerData, setHeaderData] = useState({
-    customer_supplier_code: '',
+    code: '',
     date: date
   });
 
-  // 2. Rows Data (Array of Products)
   const [rows, setRows] = useState([
-    { product_code: '', quality: '', unit: '', price: '', price_total: 0 }
+    { row_code: '', quality: '', unit: '', price: '', price_total: 0 }
   ]);
 
   const [suppliers, setSuppliers] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
 
-  // Update date when prop changes
-  useEffect(() => {
-    setHeaderData(prev => ({ ...prev, date: date }));
-  }, [date]);
+  // Theme configuration based on Entry Type
+  const isPurchase = type === 'purchase';
+  const themeColor = isPurchase ? '#4f46e5' : '#10b981'; // Blue for Purchase, Green for Sales
+  const softBg = isPurchase ? '#eef2ff' : '#ecfdf5';
+
+  useEffect(() => { setHeaderData(prev => ({ ...prev, date: date })); }, [date]);
 
   useEffect(() => {
     async function fetchForModel() {
       try {
-        const suppliers_data = await fetchSuppliers();
-        const customers_data = await fetchCustomers();
-        const products_data = await fetchProducts();
-        setSuppliers(Array.isArray(suppliers_data) ? suppliers_data : Object.values(suppliers_data || {}));
-        setCustomers(Array.isArray(customers_data) ? customers_data : Object.values(customers_data || {}));
-        setProducts(Array.isArray(products_data) ? products_data : Object.values(products_data || {}));
-      } catch (error) {
-        console.error("Error fetching modal data", error);
-      }
+        const [s, c, p] = await Promise.all([fetchSuppliers(), fetchCustomers(), fetchProducts()]);
+        setSuppliers(Array.isArray(s) ? s : Object.values(s || {}));
+        setCustomers(Array.isArray(c) ? c : Object.values(c || {}));
+        setProducts(Array.isArray(p) ? p : Object.values(p || {}));
+      } catch (e) { console.error("Fetch Error", e); }
     }
-    if (show) {
-      fetchForModel();
-    }
+    if (show) fetchForModel();
   }, [show]);
 
-  // --- Helper Functions ---
+  const personList = isPurchase ? suppliers : customers;
+  const mappedPeople = personList.map(item => ({ code: item.code || item.customer_supplier_code, name: item.name || item.customer_supplier_name }));
+  const mappedProducts = products.map(item => ({ code: item.code || item.product_code, name: item.name || item.product_name }));
 
+  const addRow = () => setRows([...rows, { row_code: '', quality: '', unit: '', price: '', price_total: 0 }]);
+  const removeRow = (index) => rows.length > 1 && setRows(rows.filter((_, i) => i !== index));
+  
   const getCachedData = (custCode, prodCode) => {
     if (!custCode || !prodCode) return null;
     try {
@@ -61,239 +69,226 @@ const EntryModal = ({ type, show, onHide, onSubmit, date, tamilDateInfo }) => {
     } catch (e) { return null; }
   };
 
-  const setCachedData = (custCode, prodCode, data) => {
-    if (!custCode || !prodCode) return;
-    localStorage.setItem(`entry_cache_${type}_${custCode}_${prodCode}`, JSON.stringify(data));
-  };
-
-  // --- Form Handlers ---
-
-  const handleHeaderChange = (e) => {
-    const { name, value } = e.target;
-    setHeaderData(prev => ({ ...prev, [name]: value }));
-  };
-
-  // Add a new empty row
-  const addRow = () => {
-    setRows([...rows, { product_code: '', quality: '', unit: '', price: '', price_total: 0 }]);
-  };
-
-  // Remove a row
-  const removeRow = (index) => {
-    if (rows.length > 1) {
-      const newRows = rows.filter((_, i) => i !== index);
-      setRows(newRows);
-    }
-  };
-
-  // Handle changes inside the table rows
   const handleRowChange = (index, field, value) => {
     const newRows = [...rows];
     newRows[index][field] = value;
 
-    // Special logic when Product changes
-    if (field === 'product_code') {
-      const product = products.find(p => p.code.toString() === value.toString());
-      if (product) {
-        // Check cache first
-        const cached = getCachedData(headerData.customer_supplier_code, value);
-        if (cached) {
-          newRows[index].price = cached.price;
-          newRows[index].unit = cached.unit || product.product_unit || 'kg';
-        } else {
-          // Use product defaults
-          newRows[index].price = product.product_price || product.price || '';
-          newRows[index].unit = product.product_unit || product.unit || 'kg';
-        }
+    if (field === 'row_code') {
+      // Find the product reference based on the current view mode
+      const productRef = viewMode === 'account'
+        ? products.find(p => p.code.toString() === value.toString()) // By Account: row_code IS the product
+        : products.find(p => p.code.toString() === headerData.code.toString()); // By Product: header code IS the product
+      console.log("Product Reference Found:", productRef);
+      if (productRef) {
+        // Auto-fill price and unit from product master
+        newRows[index].unit = productRef.unit || 'kg';
+        newRows[index].price = productRef.product_price || productRef.price || '';
       }
     }
 
-    // Recalculate Total for this row
-    if (field === 'quality' || field === 'price' || field === 'unit' || field === 'product_code') {
+    // Recalculate Line Total
+    if (['quality', 'price', 'row_code'].includes(field)) {
       const qty = parseFloat(newRows[index].quality) || 0;
-      let price = parseFloat(newRows[index].price) || 0;
-      const unit = newRows[index].unit;
-
-      // Find default unit for conversion logic
-      const product = products.find(p => p.code.toString() === newRows[index].product_code.toString());
-      const default_unit = product ? (product.product_unit || product.unit || 'kg') : 'kg';
-
-      // Conversion Logic (Kg <-> g)
-      if (unit !== default_unit) {
-        if (unit === 'kg' && default_unit === 'g') price = price * 1000;
-        else if (unit === 'g' && default_unit === 'kg') price = price / 1000;
-      }
-
-      newRows[index].price_total = (qty * price).toFixed(2);
+      const prc = parseFloat(newRows[index].price) || 0;
+      newRows[index].price_total = (qty * prc).toFixed(2);
     }
-
     setRows(newRows);
   };
 
-  // Calculate Grand Total
   const grandTotal = rows.reduce((acc, row) => acc + (parseFloat(row.price_total) || 0), 0).toFixed(2);
 
   const handleSubmit = async () => {
-    // Validation
-    if (!headerData.customer_supplier_code) {
-      alert(t('Please select a customer/supplier'));
-      return;
-    }
-    const validRows = rows.filter(r => r.product_code && r.quality && r.price);
-    if (validRows.length === 0) {
-      alert(t('Please add at least one valid product'));
-      return;
-    }
+    if (!headerData.code) return alert(t('Please make a selection in the header'));
+    const validRows = rows.filter(r => r.row_code && r.quality);
+    if (validRows.length === 0) return alert(t('Please add at least one valid item'));
 
-    const payload = {
-      customer_supplier_code: headerData.customer_supplier_code,
-      date: headerData.date,
-      items: validRows
-    };
+    setLoading(true);
+    const payload = { date: headerData.date, viewMode, headerCode: headerData.code, items: validRows };
 
     try {
-      if (type === 'purchase') {
-        await createPurchaseEntryBulk(payload);
-      } else if (type === 'sales') {
-        await createSalesEntryBulk(payload);
-      }
-
-      // Save Cache
-      validRows.forEach(row => {
-        setCachedData(headerData.customer_supplier_code, row.product_code, {
-          price: row.price,
-          unit: row.unit
-        });
-      });
-
-      onSubmit(payload); // Refresh parent table
-
-      // Reset Form
-      setRows([{ product_code: '', quality: '', unit: '', price: '', price_total: 0 }]);
+      isPurchase ? await createPurchaseEntryBulk(payload) : await createSalesEntryBulk(payload);
+      onSubmit();
       onHide();
-
-    } catch (e) {
-      console.error("Submit Error", e);
-      alert(t('messages.failedToSaveEntry'));
-    }
+      setRows([{ row_code: '', quality: '', unit: '', price: '', price_total: 0 }]);
+      setHeaderData({ ...headerData, code: '' });
+    } catch (e) { alert(t('Error saving entries')); }
+    finally { setLoading(false); }
   };
 
-  const listOptions = type === 'purchase' ? suppliers : customers;
-  const mappedListOptions = listOptions.map(item => ({
-    code: item.code || item.customer_supplier_code,
-    name: item.name || item.customer_supplier_name
-  }));
-
-  const mappedProducts = products.map(item => ({
-    code: item.code || item.product_code,
-    name: item.name || item.product_name
-  }));
-
   return (
-    <Modal show={show} onHide={onHide} size="xl" centered contentClassName="rounded-4 border-0">
-      <Modal.Header closeButton className="border-0 pb-0">
-        <Modal.Title className="fw-bold text-dark ps-2">
-          {type === 'purchase' ? '📦 ' : '📈 '} {t(`New ${type} Entry`)}
+    <Modal show={show} onHide={onHide} size="xl" centered contentClassName="rounded-4 border-0 shadow-lg overflow-hidden">
+      {/* Dynamic Colored Header */}
+      <Modal.Header closeButton className="border-0 px-4 pt-4 text-white" style={{ backgroundColor: themeColor }}>
+        <Modal.Title className="fw-bold d-flex align-items-center">
+          <FontAwesomeIcon icon={isPurchase ? faShoppingCart : faArrowUpRightFromSquare} className="me-3" />
+          {t(`${type} creation`)}
         </Modal.Title>
       </Modal.Header>
-      <Modal.Body className="p-4">
-        <div className="bg-light p-3 rounded-4 mb-4 border-0">
-          <Row className="align-items-center">
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label className="small text-muted fw-bold">{type === 'purchase' ? t('supplier.name') : t('customer.name')}</Form.Label>
-                <SearchableSelect
-                  name="customer_supplier_code"
-                  value={headerData.customer_supplier_code}
-                  options={mappedListOptions}
-                  onChange={handleHeaderChange}
-                  placeholder={t('searchPlaceholder')}
-                  autoFocus={true}
-                />
-              </Form.Group>
+
+      <Modal.Body className="p-4 bg-light">
+        {/* VIEW MODE SWITCHER */}
+        <div className="d-flex justify-content-center mb-4">
+          <div className="bg-white p-1 rounded-pill shadow-sm d-inline-flex border">
+            <Button
+              variant={viewMode === 'account' ? (isPurchase ? 'primary' : 'success') : 'light'}
+              className="rounded-pill px-4 fw-bold border-0"
+              onClick={() => setViewMode('account')}
+              size="sm"
+            >
+              <FontAwesomeIcon icon={faUser} className="me-2" /> {t(`${isPurchase ? 'supplier' : 'customer'}`)}
+            </Button>
+            <Button
+              variant={viewMode === 'product' ? (isPurchase ? 'primary' : 'success') : 'light'}
+              className="rounded-pill px-4 fw-bold border-0"
+              onClick={() => setViewMode('product')}
+              size="sm"
+            >
+              <FontAwesomeIcon icon={faBoxOpen} className="me-2" /> {t('product')}
+            </Button>
+          </div>
+        </div>
+
+        {/* HEADER INFORMATION CARD */}
+        <div className="bg-white p-4 rounded-4 shadow-sm border-0 mb-4">
+          <Row className="g-3 align-items-center">
+            <Col md={5}>
+              <Form.Label className="small text-muted fw-bold mb-2">
+                <FontAwesomeIcon icon={viewMode === 'account' ? faAddressCard : faLayerGroup} className="me-2 text-secondary" />
+                {viewMode === 'account' ? (isPurchase ? t('select.supplier') : t('select.customer')) : t('select.product')}
+              </Form.Label>
+              <SearchableSelect
+                value={headerData.code}
+                options={viewMode === 'account' ? mappedPeople : mappedProducts}
+                onChange={(e) => setHeaderData({ ...headerData, code: e.target.value })}
+              />
             </Col>
-            {/* Tamil Date Integration */}
-            <Col md={3}>
-              <div className="p-2 rounded-3 bg-white border d-flex align-items-center mt-3 mt-md-0">
-                <div className="bg-warning-soft p-2 rounded-2 me-3" style={{ backgroundColor: '#fff9db' }}>
-                  <FontAwesomeIcon icon={faMoon} className="text-warning" />
+
+            <Col md={4}>
+              <div className="p-3 rounded-3 border d-flex align-items-center h-100" style={{ backgroundColor: '#fffdf5' }}>
+                <div className="bg-warning text-white p-2 rounded-2 me-3 shadow-sm">
+                  <FontAwesomeIcon icon={faMoon} />
                 </div>
                 <div>
-                  <span className="d-block fw-bold text-dark" style={{ fontSize: '0.9rem' }}>
-                    {tamilDateInfo.tamil_month_name_ta || '---'} {tamilDateInfo.tamil_date}
-                  </span>
-                  <small className="text-muted" style={{ fontSize: '0.7rem' }}>தமிழ் தேதி (Tamil Date)</small>
+                  <small className="text-muted d-block fw-bold" style={{ fontSize: '0.7rem' }}>{t('tamil')} {t('date')}</small>
+                  <span className="fw-bold text-dark">{tamilDateInfo.tamil_month_name_ta} {tamilDateInfo.tamil_date}</span>
                 </div>
               </div>
             </Col>
+
             <Col md={3}>
-              <Form.Group>
-                <Form.Label className="small text-muted fw-bold">{t('transaction')} {t('date')}</Form.Label>
-                <Form.Control type="text" value={headerData.date} disabled className="bg-white border-0 fw-bold text-primary" />
-              </Form.Group>
+              <div className="p-3 rounded-3 border d-flex align-items-center h-100 bg-white">
+                <div className="p-2 rounded-2 me-3 shadow-sm" style={{ backgroundColor: softBg, color: themeColor }}>
+                  <FontAwesomeIcon icon={faCalendarCheck} />
+                </div>
+                <div>
+                  <small className="text-muted d-block fw-bold" style={{ fontSize: '0.7rem' }}>{t('calender')} {t('date')}</small>
+                  <span className="fw-bold text-dark">{headerData.date}</span>
+                </div>
+              </div>
             </Col>
           </Row>
         </div>
 
-        <div className="rounded-3 shadow-sm bg-white">
-          <Table hover className="align-middle mb-0">
-            <thead className="bg-dark text-white">
+        {/* DATA ENTRY TABLE */}
+        <div className="bg-white rounded-4 shadow-sm border overflow-visible">
+          <Table hover responsive className="align-middle mb-0">
+            <thead className="text-white" style={{ backgroundColor: '#334155' }}>
               <tr>
-                <th className="py-3 ps-3">{t('product')}</th>
+                <th className="py-3 ps-4" >
+                  {viewMode === 'account' ? t('product.add') : isPurchase ? t('supplier.add') : t('customer.add')}
+                </th>
                 <th className="py-3 text-center">{t('quantity')}</th>
-                <th className="py-3 text-center">{t('unit')}</th>
-                <th className="py-3 text-end">{t('price')}</th>
-                <th className="py-3 text-end pe-3">{t('total')}</th>
+                <th className="py-3 text-center" style={{ width: '15%' }}>{t('price')}</th>
+                <th className="py-3 text-center pe-4">{t('total')}</th>
                 <th className="py-3 text-center"></th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row, index) => (
                 <tr key={index}>
-                  <td className="ps-3" style={{ minWidth: '300px' }}>
+                  <td className="ps-4 w-25">
                     <SearchableSelect
-                      value={row.product_code}
-                      options={mappedProducts}
-                      onChange={(e) => handleRowChange(index, 'product_code', e.target.value)}
+                      value={row.row_code}
+                      options={viewMode === 'account' ? mappedProducts : mappedPeople}
+                      onChange={(e) => handleRowChange(index, 'row_code', e.target.value)}
                     />
                   </td>
-                  <td width="100px">
-                    <Form.Control type="number" className="text-center" value={row.quality} onChange={(e) => handleRowChange(index, 'quality', e.target.value)} />
+                  <td className="text-center w-25">
+                    {/* Unit Change Option Added back as a Select inside InputGroup */}
+                    <InputGroup size="sm">
+                      <Form.Control
+                        type="number"
+                        className="text-center fw-bold w-50"
+                        placeholder="0"
+                        value={row.quality}
+                        onChange={(e) => handleRowChange(index, 'quality', e.target.value)}
+                      />
+                      <Form.Select
+                        className='w-50'
+                        style={{fontSize: '10px' }}
+                        value={row.unit}
+                        onChange={(e) => handleRowChange(index, 'unit', e.target.value)}
+                      >
+                        <option value="kg">{t('kg')}</option>
+                        <option value="g">{t('g')}</option>
+                        <option value="படி">{t('padi')}</option>
+                        <option value="pie">{t('pieces')}</option>
+                      </Form.Select>
+                    </InputGroup>
                   </td>
-                  <td width="170px">
-                    <Form.Select value={row.unit} onChange={(e) => handleRowChange(index, 'unit', e.target.value)}>
-                      <option value="kg">{t('kg')}</option>
-                      <option value="g">{t('g')}</option>
-                      <option value="படி">{t('padi')}</option>
-                      <option value="pie">{t('pieces')}</option>
-                    </Form.Select>
+                  <td className="text-center w-25 px-4">
+                    <InputGroup size="sm">
+                      <InputGroup.Text className="bg-light">
+                        <FontAwesomeIcon icon={faIndianRupeeSign} size="xs" />
+                      </InputGroup.Text>
+                      <Form.Control
+                        type="number"
+                        className="text-end fw-bold"
+                        placeholder="0.00"
+                        value={row.price}
+                        onChange={(e) => handleRowChange(index, 'price', e.target.value)}
+                      />
+                    </InputGroup>
                   </td>
-                  <td width="120px">
-                    <Form.Control type="number" className="text-end" value={row.price} onChange={(e) => handleRowChange(index, 'price', e.target.value)} />
-                  </td>
-                  <td className="text-end fw-bold text-dark pe-3">
+                  <td className="text-center fw-bold text-dark pe-4">
                     ₹{row.price_total}
                   </td>
                   <td className="text-center">
-                    <button className="btn btn-link text-danger" onClick={() => removeRow(index)}><FontAwesomeIcon icon={faTrash} /></button>
+                    <Button variant="link" className="text-danger p-0" onClick={() => removeRow(index)}>
+                      <FontAwesomeIcon icon={faTrash} />
+                    </Button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </Table>
-        </div>
 
-        <div className="d-flex justify-content-between align-items-center mt-3">
-          <button className="btn btn-outline-primary btn-sm rounded-pill px-3" onClick={addRow}>+ {t('Add Row')}</button>
-          <div className="text-end">
-            <span className="text-muted small d-block">{t('Total Amount')}</span>
-            <h3 className="fw-black text-primary mb-0">₹{grandTotal}</h3>
+          <div className="p-3 bg-light border-top">
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              className="rounded-pill border-dashed px-4 fw-bold"
+              onClick={addRow}
+            >
+              <FontAwesomeIcon icon={faPlus} className="me-2" /> {t('Add Another Item')}
+            </Button>
           </div>
         </div>
+
       </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onHide}>{t('close')}</Button>
-        <Button variant="primary" onClick={handleSubmit}>{t('save')}</Button>
+
+      <Modal.Footer className="bg-light border-0 px-4 pb-4">
+        <Button variant="link" onClick={onHide} className="text-muted fw-bold text-decoration-none">
+          {t('Cancel')}
+        </Button>
+        <Button
+          variant={isPurchase ? 'primary' : 'success'}
+          className="px-5 rounded-pill shadow fw-bold py-2"
+          onClick={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? t('Saving...') : <><FontAwesomeIcon icon={faCalendarCheck} className="me-2" /> {t('Save Entries')}</>}
+        </Button>
       </Modal.Footer>
     </Modal>
   );

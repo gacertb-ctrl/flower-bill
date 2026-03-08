@@ -355,87 +355,65 @@ exports.updateSalesEntry = async (req, res) => {
 
 // BULK Purchase Entry (Multi-Product)
 exports.purchaseEntryBulk = async (req, res) => {
-    const { customer_supplier_code, date, items } = req.body; // items is an array of { product_code, quality, unit, price, total }
-
-    // Validate we have items
-    if (!items || items.length === 0) {
-        return res.status(400).send('No items provided');
-    }
+    const { headerCode, date, items, viewMode } = req.body;
+    const orgId = req.user.organization_id;
+    const userId = req.user.id;
 
     try {
-        let grandTotal = 0;
-        const userId = req.user.id;
-
-        // 1. Loop through items and Insert into Purchase Table
         for (const item of items) {
-            const pro_price_total_rounded = Math.round(item.price_total);
-            grandTotal += pro_price_total_rounded;
+            // Determine who is the supplier and what is the product based on mode
+            const supplierCode = viewMode === 'account' ? headerCode : item.row_code;
+            const productCode = viewMode === 'product' ? headerCode : item.row_code;
 
-            const purchaseSql = "INSERT INTO purchase(product_code, customer_supplier_code, purchase_quality, purchase_rate, purchase_total, purchase_date, purchase_unit, user_id, organization_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            const purchaseValues = [item.product_code, customer_supplier_code, item.quality, item.price, pro_price_total_rounded, date, item.unit, userId, req.user.organization_id];
+            const total = Math.round(item.price_total);
 
-            await req.conn.execute(purchaseSql, purchaseValues);
+            // 1. Insert Purchase
+            const purchaseSql = "INSERT INTO purchase(product_code, customer_supplier_code, purchase_quality, purchase_rate, purchase_total, purchase_date, user_id, organization_id, purchase_unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            await req.conn.execute(purchaseSql, [productCode, supplierCode, item.quality, item.price, total, date, userId, orgId, item.unit]);
 
+            // 2. Update Credit (Each loop updates credit for the specific supplier in that row)
+            const [creditRows] = await req.conn.execute("SELECT credit_id, credit_amount FROM credit WHERE customer_supplier_code = ? AND credit_date = ? AND organization_id = ?", [supplierCode, date, orgId]);
+
+            if (creditRows.length > 0) {
+                await req.conn.execute("UPDATE credit SET credit_amount = credit_amount + ? WHERE credit_id = ?", [total, creditRows[0].credit_id]);
+            } else {
+                await req.conn.execute("INSERT INTO credit(customer_supplier_code, credit_amount, credit_date, organization_id) VALUES (?, ?, ?, ?)", [supplierCode, total, date, orgId]);
+            }
         }
-
-        // 2. Update Credit Table ONCE with the Grand Total
-        const [creditChkRows] = await req.conn.execute("SELECT credit_id, credit_amount FROM credit WHERE customer_supplier_code = ? AND credit_date = ? AND organization_id = ?", [customer_supplier_code, date, req.user.organization_id]);
-
-        if (creditChkRows.length > 0) {
-            const total = creditChkRows[0].credit_amount + grandTotal;
-            const creditUpdateSql = "UPDATE credit SET credit_amount = ? WHERE credit_id = ?";
-            await req.conn.execute(creditUpdateSql, [total, creditChkRows[0].credit_id]);
-        } else {
-            const creditInsertSql = "INSERT INTO credit(customer_supplier_code, credit_amount, credit_date, organization_id) VALUES (?, ?, ?, ?)";
-            await req.conn.execute(creditInsertSql, [customer_supplier_code, grandTotal, date, req.user.organization_id]);
-        }
-
-        res.status(200).send('Bulk Purchase entry successful.');
+        res.status(200).send('Bulk Purchase successful');
     } catch (error) {
-        console.error('Error in bulk purchase entry:', error);
-        res.status(500).send('Error in bulk purchase entry.');
+        console.error('Error in bulk purchase:', error);
+        res.status(500).send('Error in bulk purchase');
     }
 };
 
-// BULK Sales Entry (Multi-Product)
 exports.salesEntryBulk = async (req, res) => {
-    const { customer_supplier_code, date, items } = req.body;
-
-    if (!items || items.length === 0) {
-        return res.status(400).send('No items provided');
-    }
+    const { headerCode, date, items, viewMode } = req.body;
+    const orgId = req.user.organization_id;
+    const userId = req.user.id;
 
     try {
-        let grandTotal = 0;
-        const userId = req.user.id;
-
-        // 1. Loop through items and Insert into Sales Table
         for (const item of items) {
-            const pro_price_total_rounded = Math.round(item.price_total);
-            grandTotal += pro_price_total_rounded;
+            const customerCode = viewMode === 'account' ? headerCode : item.row_code;
+            const productCode = viewMode === 'product' ? headerCode : item.row_code;
 
-            const salesSql = "INSERT INTO sales(product_code, customer_supplier_code, sales_quality, sales_rate, sales_total, sales_date, sales_unit, user_id, organization_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            const salesValues = [item.product_code, customer_supplier_code, item.quality, item.price, pro_price_total_rounded, date, item.unit, userId, req.user.organization_id];
+            const total = Math.round(item.price_total);
 
-            await req.conn.execute(salesSql, salesValues);
+            // 1. Insert Sale
+            const salesSql = "INSERT INTO sales(product_code, customer_supplier_code, sales_quality, sales_rate, sales_total, sales_date, user_id, organization_id, sales_unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            await req.conn.execute(salesSql, [productCode, customerCode, item.quality, item.price, total, date, userId, orgId, item.unit]);
+
+            // 2. Update Debit
+            const [debitRows] = await req.conn.execute("SELECT debit_id, debit_amount FROM debit WHERE customer_supplier_code = ? AND debit_date = ? AND organization_id = ?", [customerCode, date, orgId]);
+
+            if (debitRows.length > 0) {
+                await req.conn.execute("UPDATE debit SET debit_amount = debit_amount + ? WHERE debit_id = ?", [total, debitRows[0].debit_id]);
+            } else {
+                await req.conn.execute("INSERT INTO debit(customer_supplier_code, debit_amount, debit_date, organization_id) VALUES (?, ?, ?, ?)", [customerCode, total, date, orgId]);
+            }
         }
-
-        // 2. Update Debit Table ONCE with the Grand Total
-        const [debitChkRows] = await req.conn.execute("SELECT debit_id, debit_amount FROM debit WHERE customer_supplier_code = ? AND debit_date = ? AND organization_id = ?", [customer_supplier_code, date, req.user.organization_id]);
-
-        if (debitChkRows.length > 0) {
-            const total = debitChkRows[0].debit_amount + grandTotal;
-            const debitUpdateSql = "UPDATE debit SET debit_amount = ? WHERE debit_id = ?";
-            await req.conn.execute(debitUpdateSql, [total, debitChkRows[0].debit_id]);
-        } else {
-            const debitInsertSql = "INSERT INTO debit(customer_supplier_code, debit_amount, debit_date, organization_id) VALUES (?, ?, ?, ?)";
-            await req.conn.execute(debitInsertSql, [customer_supplier_code, grandTotal, date, req.user.organization_id]);
-        }
-
-        res.status(200).send('Bulk Sales entry successful.');
+        res.status(200).send('Bulk Sales successful');
     } catch (error) {
-        console.error('Error in bulk sales entry:', error);
-        res.status(500).send('Error in bulk sales entry.');
+        res.status(500).send('Error in bulk sales');
     }
 };
-

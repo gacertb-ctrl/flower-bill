@@ -168,6 +168,10 @@ const lang = {
     "Supplier Added Successfully": "விநியோகஸ்தர் வெற்றிகரமாக சேர்க்கப்பட்டது",
     "Supplier code already exists": "விநியோகஸ்தர் குறியீடு ஏற்கனவே உள்ளது",
     "pie": "எண்ணிக்கை",
+    "purchase creation": "வாங்கிய சேர்க்கப்படும்",
+    "sales creation": "விற்பனை சேர்க்கப்படும்",
+    "Add Another Item": "மற்றொரு பொருளை சேர்க்கவும்",
+    calender: "காலண்டர்",
 };
 
 export default lang;

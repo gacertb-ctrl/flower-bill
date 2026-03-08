@@ -18,3 +18,19 @@ display: block;
     background: linear-gradient(to right, rgba(106, 17, 203, 1), rgba(37, 117, 252, 1))
 }
 
+/* This ensures the dropdown menu is always on top of table rows */
+.SearchableSelect-container {
+    position: relative;
+    z-index: 1050;
+    /* Higher than table header */
+}
+
+/* Force the table to allow overflow for the dropdown */
+.table-responsive {
+    overflow: visible !important;
+}
+
+/* If using a scrollable modal, ensure the modal body can show the overflow */
+.modal-body {
+    overflow: visible !important;
+}
