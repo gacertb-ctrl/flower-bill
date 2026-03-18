@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getReportSummary, getTamilMonths, updateSupplierOD } from '../api/reportAPI.jsx';
+import { getWhatsAppStatus, sendReportWhatsApp } from '../api/whatsappAPI';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCloudDownload, faSync } from '@fortawesome/free-solid-svg-icons';
+import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import '../styles/bootstrap.min.css';
 
 const ReportPage = () => {
@@ -15,6 +17,7 @@ const ReportPage = () => {
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [tableData, setTableData] = useState([]);
     const [isUpdatingOD, setIsUpdatingOD] = useState(false);
+    const [loadingWa, setLoadingWa] = useState(false);
 
     useEffect(() => {
         const fetchMonths = async () => {
@@ -82,6 +85,42 @@ const ReportPage = () => {
 
         // Open in new tab
         window.open(url, '_blank');
+    };
+
+
+
+    const handleSendWhatsAppSingle = async (row) => {
+        try {
+            setLoadingWa(true);
+            const st = await getWhatsAppStatus();
+            if (st.instance?.state !== 'open') {
+                 alert(t('Please connect WhatsApp in Settings'));
+                 setLoadingWa(false);
+                 return;
+            }
+
+            const payload = {
+                period_type: period,
+                report_type: reportType,
+                code: row.customer_supplier_code,
+                number: row.customer_supplier_contact_no
+            };
+            
+            if (period === 'date') {
+                payload.date = selectedDate;
+            } else if (period === 'month') {
+                payload.month = selectedMonth;
+                payload.year = selectedYear;
+            }
+            
+            await sendReportWhatsApp(payload);
+            alert(`WhatsApp report sent successfully`);
+        } catch (error) {
+            console.error('Error sending whatsapp:', error);
+            alert('Failed to send WhatsApp report. Please check your connection in Settings.');
+        } finally {
+            setLoadingWa(false);
+        }
     };
 
     return (
@@ -197,8 +236,11 @@ const ReportPage = () => {
                                             <td>{row.customer_supplier_name}</td>
                                             <td>{displayAmt}</td>
                                             <td>
-                                                <button className="btn btn-primary btn-sm" onClick={() => handleDownload(row.customer_supplier_code)}>
+                                                <button className="btn btn-primary btn-sm me-2" onClick={() => handleDownload(row.customer_supplier_code)} title="Download/Print">
                                                     <FontAwesomeIcon icon={faCloudDownload} />
+                                                </button>
+                                                <button className="btn btn-success btn-sm" onClick={() => handleSendWhatsAppSingle(row)} title="Send WhatsApp" style={{ backgroundColor: '#25D366', borderColor: '#25D366' }} disabled={loadingWa}>
+                                                    <FontAwesomeIcon icon={faWhatsapp} className="text-white" style={{ fontSize: '1.2rem' }} />
                                                 </button>
                                             </td>
                                         </tr>
@@ -249,6 +291,30 @@ const ReportPage = () => {
                         </div>
                         <h5 className="fw-bold mb-1">{t('Processing...')}</h5>
                         <p className="text-muted small mb-0">{t('Calculating Monthly OD')}</p>
+                    </div>
+                </div>
+            )}
+            {loadingWa && (
+                <div className="d-flex flex-column justify-content-center align-items-center"
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100vw',
+                        height: '100vh',
+                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                        zIndex: 10000,
+                        backdropFilter: 'blur(4px)'
+                    }}>
+                    <div className="bg-white p-4 rounded-4 shadow-lg text-center" style={{ minWidth: '250px' }}>
+                        <div className="spinner-border text-success mb-3" role="status" style={{ width: '3rem', height: '3rem' }}>
+                            <span className="visually-hidden">Loading...</span>
+                        </div>
+                        <h5 className="fw-bold mb-1 text-success">
+                            <FontAwesomeIcon icon={faWhatsapp} className="me-2" />
+                            {t('WhatsApp')}
+                        </h5>
+                        <p className="text-muted small mb-0 mt-2">{t('Sending report, please wait...')}</p>
                     </div>
                 </div>
             )}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getOrgSettings, updateOrgSettings, changePassword } from '../api/settingsAPI';
-// You'll need to export UserContext/AuthContext from your context file to use this
+import { getWhatsAppStatus, connectWhatsApp, disconnectWhatsApp } from '../api/whatsappAPI';
 import { useAuth } from '../context/AuthContext';
 
 const SettingsPage = () => {
@@ -11,12 +11,63 @@ const SettingsPage = () => {
 
     const [orgData, setOrgData] = useState({ name: '', logo_url: '', address: '' });
     const [pwdData, setPwdData] = useState({ currentPassword: '', newPassword: '' });
+    const [waStatus, setWaStatus] = useState(null);
+    const [qrCode, setQrCode] = useState(null);
+    const [loadingWa, setLoadingWa] = useState(false);
 
     useEffect(() => {
         if (isAdmin) {
             getOrgSettings().then(setOrgData).catch(console.error);
         }
+        
+        // Fetch WA status on load
+        fetchWaStatus();
     }, [isAdmin]);
+
+    const fetchWaStatus = async () => {
+        try {
+            const status = await getWhatsAppStatus();
+            setWaStatus(status.instance?.state);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleWaConnect = async () => {
+        setLoadingWa(true);
+        try {
+            const res = await connectWhatsApp();
+            if (res.base64) {
+                setQrCode(res.base64);
+                // Start polling status since user needs to scan
+                const interval = setInterval(async () => {
+                    const st = await getWhatsAppStatus();
+                    if (st.instance?.state === 'open') {
+                        setWaStatus('open');
+                        setQrCode(null);
+                        clearInterval(interval);
+                    }
+                }, 3000);
+            }
+        } catch (error) {
+            alert('Failed to connect WhatsApp');
+        } finally {
+            setLoadingWa(false);
+        }
+    };
+
+    const handleWaDisconnect = async () => {
+        if (!window.confirm("Are you sure you want to disconnect WhatsApp?")) return;
+        setLoadingWa(true);
+        try {
+            await disconnectWhatsApp();
+            setWaStatus('close');
+        } catch (error) {
+            alert('Failed to disconnect WhatsApp');
+        } finally {
+            setLoadingWa(false);
+        }
+    };
 
     const handleOrgUpdate = async (e) => {
         e.preventDefault();
@@ -40,39 +91,8 @@ const SettingsPage = () => {
             <h2>{t('settings')}</h2>
 
             <div className="row mt-4">
-                {/* ADMIN ONLY: Organization Settings */}
-                {/* 
-                {isAdmin && (
-                    <div className="col-md-6 mb-4">
-                        <div className="card">
-                            <div className="card-header bg-primary text-white">{t('organization_settings')}</div>
-                            <div className="card-body">
-                                <form onSubmit={handleOrgUpdate}>
-                                    <div className="mb-3">
-                                        <label>{t('company_name')}</label>
-                                        <input className="form-control" value={orgData.name}
-                                            onChange={e => setOrgData({ ...orgData, name: e.target.value })} />
-                                    </div>
-                                    <div className="mb-3">
-                                        <label>{t('logo_url')}</label>
-                                        <input className="form-control" value={orgData.logo_url}
-                                            onChange={e => setOrgData({ ...orgData, logo_url: e.target.value })} />
-                                    </div>
-                                    <div className="mb-3">
-                                        <label>{t('address')}</label>
-                                        <textarea className="form-control" value={orgData.address}
-                                            onChange={e => setOrgData({ ...orgData, address: e.target.value })} />
-                                    </div>
-                                    <button type="submit" className="btn btn-primary">{t('save')}</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                )}
-                */}
-
                 {/* ALL USERS: Change Password */}
-                <div className="col-md-6">
+                <div className="col-md-6 mb-4">
                     <div className="card">
                         <div className="card-header bg-secondary text-white">{t('update_password')}</div>
                         <div className="card-body">
@@ -91,6 +111,37 @@ const SettingsPage = () => {
                                 </div>
                                 <button type="submit" className="btn btn-secondary">{t('update_password')}</button>
                             </form>
+                        </div>
+                    </div>
+                </div>
+
+                {/* WhatsApp Connection */}
+                <div className="col-md-6 mb-4">
+                    <div className="card">
+                        <div className="card-header bg-success text-white">WhatsApp Integration</div>
+                        <div className="card-body text-center">
+                            {waStatus === 'open' ? (
+                                <div>
+                                    <h4 className="text-success mb-3">WhatsApp is Connected</h4>
+                                    <button onClick={handleWaDisconnect} disabled={loadingWa} className="btn btn-danger">
+                                        {loadingWa ? 'Disconnecting...' : 'Disconnect'}
+                                    </button>
+                                </div>
+                            ) : (
+                                <div>
+                                    <h4 className="text-warning mb-3">WhatsApp is Not Connected</h4>
+                                    {!qrCode ? (
+                                        <button onClick={handleWaConnect} disabled={loadingWa} className="btn btn-primary">
+                                            {loadingWa ? 'Connecting...' : 'Connect WhatsApp'}
+                                        </button>
+                                    ) : (
+                                        <div>
+                                            <p className="text-muted">Scan this QR Code with your WhatsApp app.</p>
+                                            <img src={qrCode} alt="WhatsApp QR Code" className="img-fluid" style={{ maxWidth: '250px' }} />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -95,6 +95,7 @@ app.use('/reports', reportViewsRouter);
 app.use('/debit-credit', debitCreditRoutes);
 app.use('/org', orgRoutes);
 app.use('/users', userRoutes);
+app.use('/api/whatsapp', require('./routes/whatsappRoutes'));
 
 // Root route (optional, for testing)
 app.get('/', (req, res) => {
@@ -112,4 +113,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server live on port ${PORT}`);
 });
 
+// Export the app for testing purposes
 module.exports = app;
