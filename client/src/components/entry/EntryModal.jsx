@@ -72,7 +72,7 @@ const EntryModal = ({ type, show, onHide, onSubmit, date, tamilDateInfo }) => {
   const handleRowChange = (index, field, value) => {
     const newRows = [...rows];
     newRows[index][field] = value;
-
+    
     if (field === 'row_code') {
       // Find the product reference based on the current view mode
       const productRef = viewMode === 'account'
@@ -87,10 +87,22 @@ const EntryModal = ({ type, show, onHide, onSubmit, date, tamilDateInfo }) => {
     }
 
     // Recalculate Line Total
-    if (['quality', 'price', 'row_code'].includes(field)) {
+    if (['quality', 'price', 'unit', 'row_code'].includes(field)) {
       const qty = parseFloat(newRows[index].quality) || 0;
       const prc = parseFloat(newRows[index].price) || 0;
-      newRows[index].price_total = (qty * prc).toFixed(2);
+      console.log(`Calculating Total for Row ${index}: Qty=${qty}, Price=${prc}`);
+      const productRef = viewMode === 'account' ? products.find(p => p.code.toString() === newRows[index].row_code.toString()) : products.find(p => p.code.toString() === headerData.code.toString());
+      if (productRef.unit && newRows[index].unit && productRef.unit !== newRows[index].unit) {
+        // Simple unit conversion logic (expand as needed)
+        if (productRef.unit === 'kg' && newRows[index].unit === 'g') {
+          newRows[index].price_total = qty * (prc / 1000).toFixed(2);
+        } else if (productRef.unit === 'g' && newRows[index].unit === 'kg') {
+          newRows[index].price_total = qty * (prc * 1000).toFixed(2);
+        }
+      }
+      else{
+        newRows[index].price_total = (qty * prc).toFixed(2);
+      }
     }
     setRows(newRows);
   };
