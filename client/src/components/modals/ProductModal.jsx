@@ -79,7 +79,7 @@ const ProductModal = ({
                         <input
                             type="text"
                             className="form-control"
-                            id="quality"
+                            id="product_quality"
                             placeholder={t('product.quality')}
                             value={formData.product_quality}
                             onChange={handleChange}
@@ -103,7 +103,7 @@ const ProductModal = ({
                         <input
                             type="text"
                             className="form-control"
-                            id="price"
+                            id="product_price"
                             placeholder={t('product.price')}
                             value={formData.product_price}
                             onChange={handleChange}
