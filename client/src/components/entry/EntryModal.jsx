@@ -55,8 +55,8 @@ const EntryModal = ({ type, show, onHide, onSubmit, date, tamilDateInfo }) => {
   }, [show]);
 
   const personList = isPurchase ? suppliers : customers;
-  const mappedPeople = personList.map(item => ({ code: item.code || item.customer_supplier_code, name: item.name + "(" +item.code+")" || item.customer_supplier_name + "(" +item.customer_supplier_code+")" }));
-  const mappedProducts = products.map(item => ({ code: item.code || item.product_code, name: item.name + "(" +item.code+")" || item.product_name + "(" +item.product_code+")" }));
+  const mappedPeople = personList.map(item => ({ code: item.code || item.customer_supplier_code, name: item.name + " ( " +item.code+" ) " || item.customer_supplier_name + " ( " +item.customer_supplier_code+" ) " }));
+  const mappedProducts = products.map(item => ({ code: item.code || item.product_code, name: item.name + " ( " +item.code+" ) " || item.product_name + " ( " +item.product_code+" ) " }));
 
   const addRow = () => setRows([...rows, { row_code: '', quality: '', unit: '', price: '', price_total: 0 }]);
   const removeRow = (index) => rows.length > 1 && setRows(rows.filter((_, i) => i !== index));
