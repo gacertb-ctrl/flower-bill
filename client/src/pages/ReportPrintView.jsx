@@ -138,11 +138,11 @@ const ReportPrintView = () => {
                     <div key={gIdx} className="page-break p-3 container-fluid">
                         <div className="row g-2">
                             {group.map((slot, sIdx) => {
-                                console.log("Rendering Slot:", slot);
+                                // console.log("Rendering Slot:", slot);
                                 const isOdd = (sIdx + 1) % 2 !== 0;
                                 const totalAmount = slot.items?.reduce((acc, item) => acc + parseFloat(item.total || 0), 0) || 0;
                                 const outstanding = ((parseFloat(slot.prev_debit || 0) - parseFloat(slot.prev_credit || 0)) + totalAmount) - parseFloat(slot.today_pay || 0);
-
+                                const billno = (gIdx * CONFIG.billsPerPage) + sIdx + 1;
                                 return (
                                     <div key={sIdx} className="col-6">
                                         <div className={`bill-box p-1 ${isOdd ? "me-1" : "ms-1"}`}>
@@ -156,7 +156,7 @@ const ReportPrintView = () => {
                                             <div className="row g-0 py-1 border-bottom border-dark" style={{ fontSize: '9px' }}>
                                                 <div className="col-7 ps-1">
                                                     <div className="fw-bold">{slot.customer_supplier_name} {slot.hasMultiplePages && slot.pageLabel}</div>
-                                                    <div>{(type === 'purchase') ? t('purchase_bill') : t('sales_bill')} - {gIdx + 1}</div>
+                                                    <div>{(type === 'purchase') ? t('purchase_bill') : t('sales_bill')} - {billno}</div>
                                                 </div>
                                                 <div className="col-5 text-end pe-1">
                                                     <div>{searchParams.get('date')}</div>

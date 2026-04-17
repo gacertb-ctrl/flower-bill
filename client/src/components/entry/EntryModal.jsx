@@ -84,6 +84,7 @@ const EntryModal = ({ type, show, onHide, onSubmit, date, tamilDateInfo }) => {
         newRows[index].unit = productRef.unit || 'kg';
         newRows[index].price = productRef.product_price || productRef.price || '';
       }
+
     }
 
     // Recalculate Line Total
@@ -105,6 +106,10 @@ const EntryModal = ({ type, show, onHide, onSubmit, date, tamilDateInfo }) => {
       }
     }
     setRows(newRows);
+
+    if (field === 'row_code' && value) {
+      addRow();
+    }
   };
 
   const grandTotal = rows.reduce((acc, row) => acc + (parseFloat(row.price_total) || 0), 0).toFixed(2);

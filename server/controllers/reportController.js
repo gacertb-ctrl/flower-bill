@@ -78,6 +78,7 @@ exports.getReportSummary = async (req, res) => {
           cs.${pageType} = 'Y'
           AND cs.customer_supplier_is_active = 'Y'
           AND cs.organization_id = ?
+        ORDER BY cs.customer_supplier_name
       `;
 
             params.push(dateList, dateList, req.user.organization_id);
@@ -109,6 +110,7 @@ exports.getReportSummary = async (req, res) => {
           cs.${pageType} = 'Y'
           AND cs.customer_supplier_is_active = 'Y'
           AND cs.organization_id = ?
+        ORDER BY cs.customer_supplier_name
       `;
 
             params.push(date, date, req.user.organization_id);
@@ -172,7 +174,8 @@ exports.getPrintDetails = async (req, res) => {
 
         customerParams.unshift(req.user.organization_id);
         customerSql += " GROUP BY cs.customer_supplier_code";
-
+        customerSql += " ORDER BY cs.customer_supplier_name";
+        
         const [customerRows] = await db.query(customerSql, customerParams);
         customers = customerRows;
 
