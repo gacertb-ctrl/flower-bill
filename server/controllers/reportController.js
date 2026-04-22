@@ -174,7 +174,7 @@ exports.getPrintDetails = async (req, res) => {
 
         customerParams.unshift(req.user.organization_id);
         customerSql += " GROUP BY cs.customer_supplier_code";
-        customerSql += " ORDER BY cs.customer_supplier_name";
+        customerSql += " ORDER BY MAX(cs.customer_supplier_name) ASC";
         
         const [customerRows] = await db.query(customerSql, customerParams);
         customers = customerRows;
@@ -201,8 +201,8 @@ exports.getPrintDetails = async (req, res) => {
 
                 // Today's Payment/Receipt
                 let todayPaySql = report_type === 'purchase'
-                    ? `SELECT debit_amount as amount FROM debit WHERE customer_supplier_code = ? AND debit_date = ? AND organization_id = ?`
-                    : `SELECT credit_amount as amount FROM credit WHERE customer_supplier_code = ? AND credit_date = ? AND organization_id = ?`;
+                    ? `SELECT SUM(debit_amount) as amount FROM debit WHERE customer_supplier_code = ? AND debit_date = ? AND organization_id = ?`
+                    : `SELECT SUM(credit_amount) as amount FROM credit WHERE customer_supplier_code = ? AND credit_date = ? AND organization_id = ?`;
                 const [todayPayRes] = await db.query(todayPaySql, [customer.customer_supplier_code, date, req.user.organization_id]);
 
                 const [tamilDateRes] = await db.query("SELECT * FROM tamil_calendar WHERE date = ?", [date]);
