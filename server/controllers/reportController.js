@@ -130,10 +130,11 @@ exports.getPrintDetails = async (req, res) => {
     try {
         const { period_type, report_type, date, month, year, code } = req.query;
         const pageType = report_type === 'purchase' ? 'supplier' : 'customer';
+        const orgId = req.user.organization_id;
 
         let customers = [];
 
-        // 1. Fetch Customers - FIXED using MAX() for compatibility
+        // 1. Fetch Customers
         let customerSql = `
             SELECT 
                 cs.customer_supplier_code,
@@ -158,9 +159,8 @@ exports.getPrintDetails = async (req, res) => {
             customerParams.push(date);
         } else {
             const dates = await getTamilMonthDates(month, year);
-            console.log("Tamil Month Dates:", dates);
             if (dates.length === 0) return res.json([]);
-            
+
             const dateList = dates
                 .map(d => `'${new Date(d.date).toISOString().slice(0, 10)}'`)
                 .join(',');
@@ -172,88 +172,92 @@ exports.getPrintDetails = async (req, res) => {
             customerParams.push(code);
         }
 
-        customerParams.unshift(req.user.organization_id);
+        customerParams.unshift(orgId);
         customerSql += " GROUP BY cs.customer_supplier_code";
         customerSql += " ORDER BY MAX(cs.customer_supplier_name) ASC";
-        
+
         const [customerRows] = await db.query(customerSql, customerParams);
         customers = customerRows;
 
-        // 2. Build Response Data
+        if (customers.length === 0) {
+            return res.json([]);
+        }
+
+        // Get an array of all customer codes for bulk fetching
+        const customerCodes = customers.map(c => c.customer_supplier_code);
         const responseData = [];
 
-        for (const customer of customers) {
-            let dataObj = { ...customer };
+        // 2. BULK DATA FETCHING (Eliminates the N+1 Query Problem)
+        if (period_type === 'date') {
+            // Bulk fetch items
+            const [allItems] = await db.query(`
+                SELECT *, ${report_type}_quality as quality, ${report_type}_rate as rate, 
+                ${report_type}_total as total 
+                FROM ${report_type} en
+                INNER JOIN product pr ON pr.product_code = en.product_code
+                WHERE en.${report_type}_date = ? AND en.organization_id = ? AND en.customer_supplier_code IN (?)
+            `, [date, orgId, customerCodes]);
 
-            if (period_type === 'date') {
-                // Fetch Items
-                const [items] = await db.query(`
-                    SELECT *, ${report_type}_quality as quality, ${report_type}_rate as rate, 
-                    ${report_type}_total as total 
-                    FROM ${report_type} en
-                    INNER JOIN product pr ON pr.product_code = en.product_code
-                    WHERE en.${report_type}_date = ? AND en.customer_supplier_code = ? AND en.organization_id = ?
-                `, [date, customer.customer_supplier_code, req.user.organization_id]);
+            // Bulk fetch Prev Balances
+            const [allPrevDebits] = await db.query(`SELECT customer_supplier_code, SUM(debit_amount) as amount FROM debit WHERE debit_date < ? AND organization_id = ? AND customer_supplier_code IN (?) GROUP BY customer_supplier_code`, [date, orgId, customerCodes]);
+            const [allPrevCredits] = await db.query(`SELECT customer_supplier_code, SUM(credit_amount) as amount FROM credit WHERE credit_date < ? AND organization_id = ? AND customer_supplier_code IN (?) GROUP BY customer_supplier_code`, [date, orgId, customerCodes]);
 
-                // Calculate Totals (Opening Balance)
-                const [debitRes] = await db.query(`SELECT SUM(debit_amount) as amount FROM debit WHERE customer_supplier_code = ? AND debit_date < ? AND organization_id = ?`, [customer.customer_supplier_code, date, req.user.organization_id]);
-                const [creditRes] = await db.query(`SELECT SUM(credit_amount) as amount FROM credit WHERE customer_supplier_code = ? AND credit_date < ? AND organization_id = ?`, [customer.customer_supplier_code, date, req.user.organization_id]);
+            // Bulk fetch Today's Pay
+            const todayPaySql = report_type === 'purchase'
+                ? `SELECT customer_supplier_code, SUM(debit_amount) as amount FROM debit WHERE debit_date = ? AND organization_id = ? AND customer_supplier_code IN (?) GROUP BY customer_supplier_code`
+                : `SELECT customer_supplier_code, SUM(credit_amount) as amount FROM credit WHERE credit_date = ? AND organization_id = ? AND customer_supplier_code IN (?) GROUP BY customer_supplier_code`;
+            const [allTodayPay] = await db.query(todayPaySql, [date, orgId, customerCodes]);
 
-                // Today's Payment/Receipt
-                let todayPaySql = report_type === 'purchase'
-                    ? `SELECT SUM(debit_amount) as amount FROM debit WHERE customer_supplier_code = ? AND debit_date = ? AND organization_id = ?`
-                    : `SELECT SUM(credit_amount) as amount FROM credit WHERE customer_supplier_code = ? AND credit_date = ? AND organization_id = ?`;
-                const [todayPayRes] = await db.query(todayPaySql, [customer.customer_supplier_code, date, req.user.organization_id]);
+            // Single fetch for Tamil Date
+            const [tamilDateRes] = await db.query("SELECT * FROM tamil_calendar WHERE date = ?", [date]);
+            const currentTamilDate = tamilDateRes[0] || {};
 
-                const [tamilDateRes] = await db.query("SELECT * FROM tamil_calendar WHERE date = ?", [date]);
+            // Map the bulk data to respective customers
+            for (const customer of customers) {
+                let dataObj = { ...customer };
+                dataObj.items = allItems.filter(item => item.customer_supplier_code === customer.customer_supplier_code);
+                dataObj.prev_debit = allPrevDebits.find(d => d.customer_supplier_code === customer.customer_supplier_code)?.amount || 0;
+                dataObj.prev_credit = allPrevCredits.find(c => c.customer_supplier_code === customer.customer_supplier_code)?.amount || 0;
+                dataObj.today_pay = allTodayPay.find(t => t.customer_supplier_code === customer.customer_supplier_code)?.amount || 0;
+                dataObj.tamil_date = currentTamilDate;
 
-                dataObj.items = items;
-                dataObj.prev_debit = debitRes[0]?.amount || 0;
-                dataObj.prev_credit = creditRes[0]?.amount || 0;
-                dataObj.today_pay = todayPayRes[0]?.amount || 0;
-                dataObj.tamil_date = tamilDateRes[0] || {};
-
-            } else {
-                // Monthly Logic
-                // const { getTamilMonthDates } = require('../utils/tamilDateHelper');
-                const tamilDates = await getTamilMonthDates(month, year);
-                dataObj.date_ranges = tamilDates;
-
-                const dateStrings = tamilDates.map(d => `'${new Date(d.date).toISOString().slice(0, 10)}'`).join(',');
-
-                if (dateStrings) {
-                    const [dailyDebits] = await db.query(`SELECT debit_date, SUM(debit_amount) as amount FROM debit WHERE customer_supplier_code = ? AND debit_date IN (${dateStrings}) AND organization_id = ? GROUP BY debit_date`, [customer.customer_supplier_code, req.user.organization_id]);
-                    const [dailyCredits] = await db.query(`SELECT credit_date, SUM(credit_amount) as amount FROM credit WHERE customer_supplier_code = ? AND credit_date IN (${dateStrings}) AND organization_id = ? GROUP BY credit_date`, [customer.customer_supplier_code, req.user.organization_id]);
-                    dataObj.daily_debits = dailyDebits;
-                    dataObj.daily_credits = dailyCredits;
-                } else {
-                    dataObj.daily_debits = [];
-                    dataObj.daily_credits = [];
-                }
-
-                const tamilMonths = [
-                    'Chithirai', 'Vaikaasi', 'Aani', 'Aadi', 'Aavani', 'Purattasi',
-                    'Aippasi', 'Karthikai', 'Markazhi', 'Thai', 'Maasi', 'Panguni'
-                ];
-
-                const monthIndex = tamilMonths.indexOf(month);
-
-                let odMonth;
-                if (monthIndex > 0) {
-                    // If it's not the first month, take the previous one
-                    odMonth = tamilMonths[monthIndex - 1];
-                } else {
-                    // If it's Chithirai (index 0) or not found (-1), default to Panguni
-                    odMonth = 'Panguni';
-                }
-                const odYear = (odMonth == 'Markazhi') ? year - 1 : year;
-
-                // Fetch Opening Balance
-                const [odRes] = await db.query(`SELECT od_amount FROM supplier_od_old WHERE customer_supplier_code = ? AND tamil_month_name_en = ? AND year = ? AND organization_id = ?`, [customer.customer_supplier_code, odMonth, odYear, req.user.organization_id]);
-                dataObj.opening_balance = odRes[0]?.od_amount || 0;
+                responseData.push(dataObj);
             }
 
-            responseData.push(dataObj);
+        } else {
+            // Monthly Bulk Logic
+            const tamilDates = await getTamilMonthDates(month, year);
+            const dateStrings = tamilDates.map(d => `'${new Date(d.date).toISOString().slice(0, 10)}'`).join(',');
+
+            let allDailyDebits = [];
+            let allDailyCredits = [];
+
+            if (dateStrings) {
+                [allDailyDebits] = await db.query(`SELECT customer_supplier_code, debit_date, SUM(debit_amount) as amount FROM debit WHERE debit_date IN (${dateStrings}) AND organization_id = ? AND customer_supplier_code IN (?) GROUP BY customer_supplier_code, debit_date`, [orgId, customerCodes]);
+                [allDailyCredits] = await db.query(`SELECT customer_supplier_code, credit_date, SUM(credit_amount) as amount FROM credit WHERE credit_date IN (${dateStrings}) AND organization_id = ? AND customer_supplier_code IN (?) GROUP BY customer_supplier_code, credit_date`, [orgId, customerCodes]);
+            }
+
+            const tamilMonths = [
+                'Chithirai', 'Vaikaasi', 'Aani', 'Aadi', 'Aavani', 'Purattasi',
+                'Aippasi', 'Karthikai', 'Markazhi', 'Thai', 'Maasi', 'Panguni'
+            ];
+            const monthIndex = tamilMonths.indexOf(month);
+            const odMonth = monthIndex > 0 ? tamilMonths[monthIndex - 1] : 'Panguni';
+            const odYear = (odMonth === 'Markazhi') ? year - 1 : year;
+
+            // Bulk fetch Opening Balance
+            const [allOdRes] = await db.query(`SELECT customer_supplier_code, od_amount FROM supplier_od_old WHERE tamil_month_name_en = ? AND year = ? AND organization_id = ? AND customer_supplier_code IN (?)`, [odMonth, odYear, orgId, customerCodes]);
+
+            // Map the bulk data to respective customers
+            for (const customer of customers) {
+                let dataObj = { ...customer };
+                dataObj.date_ranges = tamilDates;
+                dataObj.daily_debits = allDailyDebits.filter(d => d.customer_supplier_code === customer.customer_supplier_code);
+                dataObj.daily_credits = allDailyCredits.filter(c => c.customer_supplier_code === customer.customer_supplier_code);
+                dataObj.opening_balance = allOdRes.find(o => o.customer_supplier_code === customer.customer_supplier_code)?.od_amount || 0;
+
+                responseData.push(dataObj);
+            }
         }
 
         res.json(responseData);
@@ -263,7 +267,6 @@ exports.getPrintDetails = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-
 // controller.js
 exports.getTamilDateByCalendarDate = async (req, res) => {
     try {
