@@ -58,7 +58,7 @@ const ReportPrintView = () => {
                         setData(result);
                         if (result.length > 0) {
                             setTimeout(() => {
-                                // if (isMounted) window.print();
+                                if (isMounted) window.print();
                             }, 1500);
                         }
                     } 
